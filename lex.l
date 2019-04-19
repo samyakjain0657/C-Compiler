@@ -100,6 +100,7 @@ LT		"<"
 GE		">="
 LE		"<="
 COMP	"=="
+COLON   ":"
 NEQ 	("!="|"<>")
 COMMA 	","
 MAIN	"main"
@@ -116,6 +117,9 @@ FLOAT 	"float"
 BOOL	"bool"
 TRUE 	"true"
 FALSE	"false"
+SWITCH  "switch"
+CASE    "case"
+DEFAULT "default"
 INT_VALUE 			([0-9]+)
 FLOAT_VAL			([0-9]+\.[0-9]+)
 BREAK               "break"
@@ -145,6 +149,9 @@ NEWLINE 			([\n])
 {FOR} 			{return FOR;}
 {WHILE} 		{return WHILE;}
 {ELSE} 			{return ELSE;}
+{COLON}         {return COLON;}
+{CASE}          {return CASE;}
+{DEFAULT}       {return DEFAULT;}
 {INT} 			{(yylval.datanode) = initialise("INT", yytext); 
                 return INT;}
 {TRUE} 			{(yylval.datanode) = initialise("TRUE", yytext); 
@@ -157,6 +164,8 @@ NEWLINE 			([\n])
                 return FLOAT;}
 {BOOL} 			{(yylval.datanode) = initialise("BOOL", yytext); 
                 return BOOL;}
+{VOID}          {(yylval.datanode) = initialise("VOID", yytext); 
+                return VOID;}
 {LP}	    	{return LP;}
 {RP}		    {return RP;}
 {LS}	    	{return LS;}
@@ -169,6 +178,7 @@ NEWLINE 			([\n])
 {BREAK} 		{return BREAK;}
 {CONTINUE} 		{return CONTINUE;}
 {COMMA}			{return COMMA;}
+{SWITCH}        {return SWITCH;}
 {INT_VALUE}		{(yylval.datanode) = initialise("INT_VALUE", yytext); 
                 yylval.datanode->setDataType(dt_int); 
                 return INT_VALUE;}

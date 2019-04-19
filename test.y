@@ -18,7 +18,7 @@ int yyerror(char *s);
 	struct DataNode *datanode;
 }
 
-%token<datanode> DEFAULT CASE COLON SWITCH SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID
+%token<datanode> SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID
 %type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt 
 
 %start start
@@ -57,7 +57,6 @@ dclr:
 
 func_def:  
     type ID LB {scope++;
-        active_type = dt_none;
         enter_func(($2)->value,($1)->value,active_func_ptr);
     }
     decl_plist RB LP 
@@ -95,25 +94,21 @@ decl_param:
     type ID {   
         var *param;
         enter_param(($2)->value,($1)->value,active_func_ptr,param);
-        active_type = dt_none;
     }
 ;
 
 var_dclr:   
     type varl SEMICOL {
         patch_type(($1)->value);
-        active_type = dt_none;
     }
 ;
 
 type:  
     INT { 
-        active_type = dt_int;
         $$ = $1;
     }
     |
     FLOAT {
-        active_type = dt_float;
         $$ = $1;
     }
 ;
@@ -123,14 +118,10 @@ varl:
         enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
     }
     | ID EQUALS expr {
-        bool chk = check_type($1, $3);
-        if (chk)
-            enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
+        enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
     }
-    | varl COMMA ID EQUALS expr {
-        bool chk = check_type($3, $5);
-        if (chk)
-            enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);
+    | varl COMMA ID EQUALS expr {   
+        enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);
     }
     | varl COMMA ID 
     {   enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);}
@@ -195,7 +186,6 @@ default:
     DEFAULT COLON stmt_list
     |
 ;
-
 return_stmt:    
     RETURN
     {
@@ -280,7 +270,6 @@ func_call:
     ID LB paramlist RB 
     {
         DataNode* func = check_func_call(($1)->value);
-        param_list.clear();
         $$ = func;
     }
 ;
