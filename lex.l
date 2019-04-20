@@ -26,6 +26,7 @@
         string type;			// lexeme class
         string value;			// lexeme
         DataType data_type;		// datatype of the Datanode(if required)
+        string code_name;
         int line_number;		// line number where the Datanode is occuring
 
         // Children of the DataNodes

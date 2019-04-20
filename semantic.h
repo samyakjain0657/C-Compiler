@@ -1,3 +1,8 @@
+// TODO
+// dims2 int type checking 
+// array float c
+// function return type
+
 #include <bits/stdc++.h>
 using namespace std;
 
@@ -13,7 +18,7 @@ enum DataType{
 };
 
 
-// ofstream file;
+ofstream file;
 
 extern int yylineno;
 // Nodes of the AST
@@ -118,15 +123,16 @@ DataType active_type = dt_none;
 
 int var_counter = 0;
 int dim_count = 0;
+int param_count = 0;
 
 int scope;
 
 vector <string> var_list;
 vector <DataType> param_list;
 vector <int> dimlist;
-// vector <string> dimlist_call;
-// vector <var> symbol_list;
-// vector <string> temp_regs({"_t0","_t1","_t2","_t3","_t4","_t5","_t6","_t7","_t8","_t9"});
+vector <string> dimlist_call;
+vector <var> symbol_list;
+vector <string> temp_regs({"_t0","_t1","_t2","_t3","_t4","_t5","_t6","_t7","_t8","_t9"});
 
 func_table_entry* active_func_ptr=NULL;
 func_table_entry* call_name_ptr = NULL;
@@ -145,7 +151,7 @@ void search_func(string n, bool &found, func_table_entry* &fnptr){
 }
 
 void search_param(string p, func_table_entry* fnptr, bool &found, var* &pnptr){
-    auto param_list=fnptr->paramlist;
+    auto &param_list=fnptr->paramlist;
     
     for(auto it=param_list.begin();it!=param_list.end();it++){
 		
@@ -176,17 +182,15 @@ void search_var(string p, func_table_entry* fnptr, int level, bool &found, var* 
 	}
 	bool found1 = false;
 	if(level!=0)
-		search_func(fnptr->name,found1,fnptr);
-    auto local_list=fnptr->local_var_list;
-    
-    for(auto it=local_list.begin();it!=local_list.end();it++){
-		for(int i=level; i >= 2; i--){
-			if((it)->name==p && (it)->level==i){
-				found=true;
-				vn=&(*it);
-				return;
+		search_func(fnptr->name,found1,fnptr);    
+    for(auto it=fnptr->local_var_list.begin();it!=fnptr->local_var_list.end();it++){
+			for(int i=level; i >= 2; i--){
+				if((it)->name==p && (it)->level==i){
+					found=true;
+					vn=&(*it);
+					return;
+				}
 			}
-		}
     }
 	search_param(p, fnptr, found, vn);
 	if (found) {
@@ -220,7 +224,7 @@ void search_var_level(string p, func_table_entry* fnptr, int level, bool &found,
 		}
 		return;
 	}
-    auto local_list=fnptr->local_var_list;
+    auto &local_list = fnptr->local_var_list;
     
     for(auto it=local_list.begin();it!=local_list.end();it++){
 		if((it)->name==p && (it)->level==level){
@@ -278,10 +282,11 @@ void enter_param(string name, string type, func_table_entry* &func, var* &pnptr)
 	new_param->level=1;
 	new_param->type="simple";
 	new_param->eletype=type;
-
+	new_param->code_name = "_param" + to_string(param_count++);
 	pnptr=new_param;
 
 	(func->paramlist).push_back(*new_param);
+
 }
 
 void enter_var(string name, int level, string type, vector <int> &dims, func_table_entry* &func){
@@ -309,9 +314,14 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 	variable->name = name;
 	variable->level = level;
 	variable->type = type;
-	variable->code_name = "var" + to_string(var_counter++);
-	if(type=="array")
-		variable->dims = dims;
+	variable->code_name = "_var" + to_string(var_counter++);
+	if(type=="array") {
+		// variable->dims = dims;
+		variable->dims.resize(dims.size());
+		for (auto i = 0; i < dims.size(); i++) {
+			variable->dims[i] = dims[i];
+		}
+	}
 	var_list.push_back(name);
 
 	if(level==0){
@@ -330,14 +340,14 @@ void patch_type(string data_type){
 	for(int i=0;i<var_list.size();i++){
 		if(scope==0){
 			sym_tab[var_list[i]].eletype = data_type;
-			// symbol_list.push_back(sym_tab[var_list[i]]);
+			symbol_list.push_back(sym_tab[var_list[i]]);
 		}
 		else{
 			search_func(active_func_ptr->name,found,func);
 			for(auto itr= func->local_var_list.begin();itr!=func->local_var_list.end();itr++){
 				if((*itr).name==var_list[i] && (*itr).level==scope){
 					(*itr).eletype = data_type;
-					// symbol_list.push_back(*itr);
+					symbol_list.push_back(*itr);
 					break;
 				}
 			}
@@ -478,41 +488,45 @@ void set_data_type(DataNode* &a) {
 	}
 }
 
-// string get_var_code_name(string name) {
-// 	bool found = false;
-// 	var *variable;
-// 	search_var(name,active_func_ptr,scope,found,variable);
-// 	if(!found){
-// 		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
-// 	}
-// 	else{
-// 		return variable->code_name;
-// 	}
-// }
+string get_var_code_name(string name) {
+	bool found = false;
+	var *variable;
+	search_var(name,active_func_ptr,scope,found,variable);
+	if(!found){
+		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
+	}
+	else{
+		return variable->code_name;
+	}
+}
 
-// string get_temp_name(){
-// 	if (temp_regs.size() > 0) {
-// 		string s = temp_regs[temp_regs.size()-1];
-// 		temp_regs.pop_back();
-// 		return s;
-// 	}
-// 	return "";
-// }
+string get_temp_name(){
+	if (temp_regs.size() > 0) {
+		string s = temp_regs[temp_regs.size()-1];
+		temp_regs.pop_back();
+		// cout << "acquired : " << s << endl;
+		return s;
+	}
+	return "";
+}
 
-// void release_temp_name(string s){
-// 	if(s[0]!='_' || s == "")
-// 		return;
-// 	temp_regs.push_back(s);
-// }
+void release_temp_name(string s){
+	if(s[0] !='_' || s == "")
+		return;
+	// cout << "released : " << s << endl;
+	temp_regs.push_back(s);
+}
 
-// vector <int> get_dimlist(string name){
-// 	bool found = false;
-// 	var *variable;
-// 	search_var(name,active_func_ptr,scope,found,variable);
-// 	if(!found){
-// 		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
-// 	}
-// 	else{
-// 		return variable->dims;
-// 	}
-// }
+vector <int> get_dimlist(string name){
+	func_table_entry* func;
+	bool found = false, found1;
+	search_func(active_func_ptr->name,found1,func);
+	var *variable;
+	search_var(name,func,scope,found,variable);
+	if(!found){
+		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
+	}
+	else{
+		return variable->dims;
+	}
+}

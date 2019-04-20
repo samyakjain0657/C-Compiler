@@ -581,6 +581,7 @@ char *yytext;
         string type;			// lexeme class
         string value;			// lexeme
         DataType data_type;		// datatype of the Datanode(if required)
+        string code_name;
         int line_number;		// line number where the Datanode is occuring
 
         // Children of the DataNodes
@@ -630,8 +631,8 @@ char *yytext;
     }
 
 
-#line 634 "lex.yy.c"
 #line 635 "lex.yy.c"
+#line 636 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -848,10 +849,10 @@ YY_DECL
 		}
 
 	{
-#line 132 "lex.l"
+#line 133 "lex.l"
 
 
-#line 855 "lex.yy.c"
+#line 856 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -920,233 +921,233 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 134 "lex.l"
+#line 135 "lex.l"
 {return SEMICOL;}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 135 "lex.l"
+#line 136 "lex.l"
 {return EQUALS;}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 136 "lex.l"
+#line 137 "lex.l"
 {(yylval.datanode) = initialise("INT", yytext); 
                 return ADD;}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 138 "lex.l"
+#line 139 "lex.l"
 {(yylval.datanode) = initialise("INT", yytext); 
                 return SUB;}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 140 "lex.l"
+#line 141 "lex.l"
 {(yylval.datanode) = initialise("INT", yytext); 
                 return MUL;}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 142 "lex.l"
+#line 143 "lex.l"
 {(yylval.datanode) = initialise("INT", yytext); 
                 return DIV;}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 144 "lex.l"
+#line 145 "lex.l"
 {(yylval.datanode) = initialise("INT", yytext); 
                 return MOD;}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 146 "lex.l"
+#line 147 "lex.l"
 {(yylval.datanode) = initialise("GT", yytext); 
                 return GT;}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 148 "lex.l"
+#line 149 "lex.l"
 {(yylval.datanode) = initialise("LT", yytext); 
                 return LT;}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 150 "lex.l"
+#line 151 "lex.l"
 {(yylval.datanode) = initialise("GE", yytext); 
                 return GE;}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 152 "lex.l"
+#line 153 "lex.l"
 {(yylval.datanode) = initialise("LE", yytext); 
                 return LE;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 154 "lex.l"
+#line 155 "lex.l"
 {(yylval.datanode) = initialise("COMP", yytext); 
                 return COMP;}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 156 "lex.l"
+#line 157 "lex.l"
 {(yylval.datanode) = initialise("NEQ", yytext); 
                 return NEQ;}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 158 "lex.l"
+#line 159 "lex.l"
 {return MAIN;}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 159 "lex.l"
+#line 160 "lex.l"
 {return IF;}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 160 "lex.l"
+#line 161 "lex.l"
 {return FOR;}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 161 "lex.l"
+#line 162 "lex.l"
 {return WHILE;}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 162 "lex.l"
+#line 163 "lex.l"
 {return ELSE;}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 163 "lex.l"
+#line 164 "lex.l"
 {return COLON;}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 164 "lex.l"
+#line 165 "lex.l"
 {return CASE;}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 165 "lex.l"
+#line 166 "lex.l"
 {return DEFAULT;}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 166 "lex.l"
+#line 167 "lex.l"
 {(yylval.datanode) = initialise("INT", yytext); 
                 return INT;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 168 "lex.l"
+#line 169 "lex.l"
 {(yylval.datanode) = initialise("TRUE", yytext); 
                 yylval.datanode->setDataType(dt_bool); 
                 return TRUE;}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 171 "lex.l"
+#line 172 "lex.l"
 {(yylval.datanode) = initialise("FALSE", yytext); 
                 yylval.datanode->setDataType(dt_bool); 
                 return FALSE;}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 174 "lex.l"
+#line 175 "lex.l"
 {(yylval.datanode) = initialise("FLOAT", yytext); 
                 return FLOAT;}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 176 "lex.l"
+#line 177 "lex.l"
 {(yylval.datanode) = initialise("BOOL", yytext); 
                 return BOOL;}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 178 "lex.l"
+#line 179 "lex.l"
 {(yylval.datanode) = initialise("VOID", yytext); 
                 return VOID;}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 180 "lex.l"
+#line 181 "lex.l"
 {return LP;}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 181 "lex.l"
+#line 182 "lex.l"
 {return RP;}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 182 "lex.l"
+#line 183 "lex.l"
 {return LS;}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 183 "lex.l"
+#line 184 "lex.l"
 {return RS;}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 184 "lex.l"
+#line 185 "lex.l"
 {return LB;}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 185 "lex.l"
+#line 186 "lex.l"
 {return RB;}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 186 "lex.l"
+#line 187 "lex.l"
 {return RETURN;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 187 "lex.l"
+#line 188 "lex.l"
 {return OR;}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 188 "lex.l"
+#line 189 "lex.l"
 {return AND;}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 189 "lex.l"
+#line 190 "lex.l"
 {return BREAK;}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 190 "lex.l"
+#line 191 "lex.l"
 {return CONTINUE;}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 191 "lex.l"
+#line 192 "lex.l"
 {return COMMA;}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 192 "lex.l"
+#line 193 "lex.l"
 {return SWITCH;}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 193 "lex.l"
+#line 194 "lex.l"
 {(yylval.datanode) = initialise("INT_VALUE", yytext); 
                 yylval.datanode->setDataType(dt_int); 
                 return INT_VALUE;}
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 196 "lex.l"
+#line 197 "lex.l"
 {(yylval.datanode) = initialise("FLOAT_VAL", yytext); 
                 yylval.datanode->setDataType(dt_float); 
                 return FLOAT_VAL;}
@@ -1154,38 +1155,38 @@ YY_RULE_SETUP
 case 43:
 /* rule 43 can match eol */
 YY_RULE_SETUP
-#line 199 "lex.l"
+#line 200 "lex.l"
 {(yylval.datanode) = initialise("LIBRARY", yytext); 
                 return LIBRARY;}
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 201 "lex.l"
+#line 202 "lex.l"
 {(yylval.datanode) = initialise("ID", yytext); 
                 return ID;}
 	YY_BREAK
 case 45:
 /* rule 45 can match eol */
 YY_RULE_SETUP
-#line 203 "lex.l"
+#line 204 "lex.l"
 {}
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 204 "lex.l"
+#line 205 "lex.l"
 {}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 206 "lex.l"
+#line 207 "lex.l"
 {cerr<< "TOKEN CANNOT BE MATCHED "<<endl;}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 208 "lex.l"
+#line 209 "lex.l"
 ECHO;
 	YY_BREAK
-#line 1189 "lex.yy.c"
+#line 1190 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2202,5 +2203,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 208 "lex.l"
+#line 209 "lex.l"
 

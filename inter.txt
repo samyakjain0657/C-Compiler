@@ -1,0 +1,30 @@
+func begin main
+_t9 = _var1
+_t8 = _var2
+_t7 = _t9 + _t8
+_t8 = _var2
+_t9 = _t8 - 6
+_t8 = _var1
+_t2 = _t7 * 8
+_t3 = _t2 + _t9
+_t9 = _t3 * 2
+_t2 = _t9 + _t8
+_t6 = _t2 * 4
+_t5 = addr(_var3)
+_t4 = _t5[_t6]
+_var0 = _t4
+_t4 = _var0
+_t5 = _var1
+_t6 = _var2
+_t2 = _var2
+_t9 = _var1
+_t8 = _t9 + 6
+_t0 = _t5 * 8
+_t1 = _t0 + _t6
+_t6 = _t1 * 2
+_t0 = _t6 + _t2
+_t9 = _t0 * 4
+_t3 = addr(_var3)
+_t3[_t9] = _t8
+_t7 = _t3[_t9]
+func end
