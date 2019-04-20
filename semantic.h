@@ -12,6 +12,9 @@ enum DataType{
 	dt_err
 };
 
+
+// ofstream file;
+
 extern int yylineno;
 // Nodes of the AST
 struct DataNode {
@@ -19,6 +22,7 @@ public:
 	string type;			// lexeme class
 	string value;			// lexeme
 	DataType data_type;		// datatype of the Datanode(if required)
+	string code_name;
 	int line_number;		// line number where the Datanode is occuring
 
 	// Children of the DataNodes
@@ -72,6 +76,7 @@ public:
 struct var{
     string type;
     string name;
+		string code_name;
     bool isParam;
     int level;
     string eletype;
@@ -85,6 +90,8 @@ struct var{
 		cout << endl;
 	}
 };
+
+
 
 struct func_table_entry {
     string name;
@@ -109,11 +116,17 @@ map <string, func_table_entry> func_table;
 map <string, var> sym_tab;
 DataType active_type = dt_none;
 
+int var_counter = 0;
+int dim_count = 0;
+
 int scope;
 
 vector <string> var_list;
 vector <DataType> param_list;
 vector <int> dimlist;
+// vector <string> dimlist_call;
+// vector <var> symbol_list;
+// vector <string> temp_regs({"_t0","_t1","_t2","_t3","_t4","_t5","_t6","_t7","_t8","_t9"});
 
 func_table_entry* active_func_ptr=NULL;
 func_table_entry* call_name_ptr = NULL;
@@ -136,11 +149,11 @@ void search_param(string p, func_table_entry* fnptr, bool &found, var* &pnptr){
     
     for(auto it=param_list.begin();it!=param_list.end();it++){
 		
-		if((*it).name==p){
-			found=true;
-			pnptr=&(*it);
-			return;
-		}
+			if((*it).name==p){
+				found=true;
+				pnptr=&(*it);
+				return;
+			}
     }
 
 	found=false;
@@ -161,6 +174,9 @@ void search_var(string p, func_table_entry* fnptr, int level, bool &found, var* 
 		}
 		return;
 	}
+	bool found1 = false;
+	if(level!=0)
+		search_func(fnptr->name,found1,fnptr);
     auto local_list=fnptr->local_var_list;
     
     for(auto it=local_list.begin();it!=local_list.end();it++){
@@ -217,18 +233,22 @@ void search_var_level(string p, func_table_entry* fnptr, int level, bool &found,
 	vn=NULL;
 }
 
-void delete_var_list(func_table_entry* func, int level){
-	auto var_list=func->local_var_list;
+void release_var(func_table_entry* &func, int level){
+	bool found=false;
+	if(level!=0)
+		search_func(func->name,found,func);
     
-    for(auto it=var_list.begin();it!=var_list.end();it++){
+    for(auto it=func->local_var_list.begin();it!=func->local_var_list.end();){
 		if((it)->level==level){
-			var_list.erase(it);
+			it = func->local_var_list.erase(it);
 		}
+		else
+			it++;
     }
 }
 
 void enter_func(string name, string result_type, func_table_entry* &namptr){
-	func_table_entry* new_entry=new func_table_entry();
+	func_table_entry* new_entry = new func_table_entry;
 	
 	new_entry->name=name;
 	new_entry->result_type=result_type;
@@ -289,6 +309,7 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 	variable->name = name;
 	variable->level = level;
 	variable->type = type;
+	variable->code_name = "var" + to_string(var_counter++);
 	if(type=="array")
 		variable->dims = dims;
 	var_list.push_back(name);
@@ -309,17 +330,20 @@ void patch_type(string data_type){
 	for(int i=0;i<var_list.size();i++){
 		if(scope==0){
 			sym_tab[var_list[i]].eletype = data_type;
+			// symbol_list.push_back(sym_tab[var_list[i]]);
 		}
 		else{
 			search_func(active_func_ptr->name,found,func);
 			for(auto itr= func->local_var_list.begin();itr!=func->local_var_list.end();itr++){
 				if((*itr).name==var_list[i] && (*itr).level==scope){
 					(*itr).eletype = data_type;
+					// symbol_list.push_back(*itr);
 					break;
 				}
 			}
 		}	
 	}
+
 	var_list.clear();
 }
 
@@ -401,10 +425,10 @@ DataNode* checkType(DataNode *a, DataNode* b) {
 		res->data_type = dt_err;
 		return res; 
 	}
-	if (b->data_type == dt_int && variable->type == "int") {
+	if (b->data_type == dt_int && variable->eletype == "int") {
 		return b;
 	}
-	else if (b->data_type == dt_float && variable->type == "float") {
+	else if (b->data_type == dt_float && variable->eletype == "float") {
 		return b;
 	}
 	else {
@@ -453,3 +477,42 @@ void set_data_type(DataNode* &a) {
 		a->data_type = dt_float;
 	}
 }
+
+// string get_var_code_name(string name) {
+// 	bool found = false;
+// 	var *variable;
+// 	search_var(name,active_func_ptr,scope,found,variable);
+// 	if(!found){
+// 		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
+// 	}
+// 	else{
+// 		return variable->code_name;
+// 	}
+// }
+
+// string get_temp_name(){
+// 	if (temp_regs.size() > 0) {
+// 		string s = temp_regs[temp_regs.size()-1];
+// 		temp_regs.pop_back();
+// 		return s;
+// 	}
+// 	return "";
+// }
+
+// void release_temp_name(string s){
+// 	if(s[0]!='_' || s == "")
+// 		return;
+// 	temp_regs.push_back(s);
+// }
+
+// vector <int> get_dimlist(string name){
+// 	bool found = false;
+// 	var *variable;
+// 	search_var(name,active_func_ptr,scope,found,variable);
+// 	if(!found){
+// 		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
+// 	}
+// 	else{
+// 		return variable->dims;
+// 	}
+// }

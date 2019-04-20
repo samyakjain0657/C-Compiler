@@ -19,7 +19,7 @@ int yyerror(char *s);
 }
 
 %token<datanode> DEFAULT CASE COLON SWITCH SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID
-%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt 
+%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 
 
 %start start
     
@@ -40,7 +40,20 @@ libraries:
 ;
 
 body_main: 
-    INT MAIN LB RB LP {scope=2; enter_func("main","int",active_func_ptr);}body{} RP
+    INT MAIN LB RB 
+    LP 
+    {
+        scope=2; 
+        enter_func("main","int",active_func_ptr);
+        // file << "func begin main\n";
+    }
+    body
+    {
+        // release_var(active_func_ptr,scope);
+        scope--;
+        // file << "func end\n";
+    } 
+    RP 
 ;
 
 declarations: 
@@ -61,11 +74,11 @@ func_def:
         enter_func(($2)->value,($1)->value,active_func_ptr);
     }
     decl_plist RB LP 
-    {  
+    {                  
         scope++;
     } 
     body 
-    {scope=0;}
+    {release_var(active_func_ptr,2),scope=0;}
     RP
     |
     VOID ID LB {scope++;
@@ -76,7 +89,7 @@ func_def:
         scope++;
     } 
     body 
-    {scope=0;}
+    {release_var(active_func_ptr,2),scope=0;}
     RP
 ;
 
@@ -124,8 +137,9 @@ varl:
     }
     | ID EQUALS expr {
         bool chk = check_type($1, $3);
-        if (chk)
+        if (chk) {
             enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
+        }
     }
     | varl COMMA ID EQUALS expr {
         bool chk = check_type($3, $5);
@@ -146,8 +160,24 @@ dims:
 ;
 
 dims2:
-    LS term RS
+    LS term RS 
+    {
+        dim_count++;
+        // dimlist_call.push_back($2->code_name);
+    }
     | dims2 LS term RS
+    {
+      //  $1->code_name*dimlist_call[dim_count]+$3->code_name;
+        // string temp_name = get_temp_name();
+        // string temp_name2 = get_temp_name();
+        // file << temp_name << " = " << $1->code_name << " * " << dimlist_call[dim_count] << endl;
+        // file << temp_name2 << " = " << temp_name << " + " << $3->code_name;
+        // release_temp_name(temp_name);
+        // release_temp_name($3->code_name);
+        // $$->code_name = temp_name2;
+        // dimlist_call.push_back($3->code_name);
+        dim_count++;
+    }
 ;
 
 body:
@@ -165,7 +195,8 @@ stmt:
         scope++;   
     }
     stmt_list
-    {
+    {   
+        release_var(active_func_ptr,scope);
         scope--;
     } 
     RP
@@ -174,20 +205,67 @@ stmt:
     |   CONTINUE SEMICOL
     |   BREAK SEMICOL
     |   return_stmt SEMICOL
-    |   IF LB expr RB LP stmt_list RP else_stmt
-    |   FOR LB expr SEMICOL expr SEMICOL expr RB LP stmt_list RP
-    |   WHILE LB expr RB LP stmt_list RP
-    |   SWITCH LB ID RB LP case_stmt default RP
+    |   IF LB expr RB LP {scope++;}
+        stmt_list RP {
+            release_var(active_func_ptr,scope);
+            scope--;
+        }
+        else_stmt
+    |   FOR LB expr SEMICOL expr SEMICOL expr RB LP {scope++;}stmt_list RP { 
+            release_var(active_func_ptr,scope);
+            scope--;
+        }
+    |   WHILE LB expr RB LP {scope++;} stmt_list RP {
+            release_var(active_func_ptr,scope);
+            scope--;
+        }
+    |   SWITCH LB ID{
+            var *variable;
+            bool found = false;
+            search_var(($3)->value,active_func_ptr,scope,found,variable);
+            if(!found){
+                cout << "Line No. " << yylineno << " Error : Variable " << ($3)->value << " not declared" << endl; 
+            }
+            else{
+                if(variable->eletype!="int")
+                    cout << "Line No. " << yylineno << " Error: expression must have integral type"<< endl; 
+            }
+            
+        }
+        RB LP { scope++; } 
+        case_stmt default RP { 
+            release_var(active_func_ptr,scope);
+            scope--;
+        }
+    |   SWITCH LB ID dims2{
+           var *variable;
+            bool found = false;
+            search_var(($3)->value,active_func_ptr,scope,found,variable);
+            if(!found){
+                cout << "Line No. " << yylineno << " Error : Variable " << ($3)->value << " not declared" << endl; 
+            }
+            else{
+                if(variable->eletype!="int")
+                    cout << "Line No. " << yylineno << " Error: expression must have integral type"<< endl; 
+            }            
+        }
+        RB LP { scope++; } 
+        case_stmt default RP { 
+            release_var(active_func_ptr,scope);
+            scope--;
+        }
 ;
 
 else_stmt: 
-    ELSE LP stmt_list RP
+    ELSE LP {scope++;} stmt_list RP {
+        release_var(active_func_ptr,scope);
+        scope--;
+    }
     |   
 ;
 
 case_stmt:
     case_stmt CASE INT_VALUE COLON stmt_list
-    |   case_stmt CASE FLOAT_VAL COLON stmt_list
     |
 ;
 
@@ -242,38 +320,69 @@ term:
     LB arith_expr RB {$$ = $2;}
     |   func_call {$$ = $1;}
     |   const {$$ = $1;}
-    |   ID {set_data_type($1); $$ = $1;}
+    |   ID 
+    {
+        set_data_type($1); 
+        $$ = $1;
+        // $$->code_name = get_var_code_name($1->value);
+
+    }
     |   ID dims2
     {
+        dim_count = 0;
+        
         set_data_type($1);
+        
         $$ = $1;
-        ($$)->type = "Array";
+        ($$)->type = "array";
+
+        // string temp_name = get_temp_name();
+        // string temp_name3 = get_temp_name();
+        // string temp_name4 = get_temp_name();
+        // string temp_name5 = get_temp_name();  
+        // string temp_name2;      
+        // vector<int> temp_dim_list = get_dimlist($1->value);
+        // for (int i = 0; i < temp_dim_list.size()-1; i++) {
+        //     temp_name2 = get_temp_name();    
+        //     file << temp_name << " = " << dimlist_call[i] << " * " << temp_dim_list[i+1] << endl;
+        //     file << temp_name2 << " = " << temp_name << " + " << dimlist_call[i+1];
+        //     release_temp_name(temp_name);
+        //     temp_name = temp_name2;
+        // }
+        // file << temp_name3 << " = " << temp_name2 << " * 4\n";
+        // file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << endl;
+        // file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << endl;
+        // release_temp_name(temp_name2);
+        // release_temp_name(temp_name3);
+        // release_temp_name(temp_name4);
+        // temp_dim_list.clear();
+        // $$->code_name = temp_name5;
     }
 ;
 
 const:  
-    INT_VALUE {$$ = $1;}
-    |   FLOAT_VAL {$$ = $1;}
+    INT_VALUE {$$ = $1; $$->code_name = $1->value;}
+    |   FLOAT_VAL {$$ = $1; $$->code_name = $1->value;}
 ;
 
 op1:    
-    ADD
-    |   SUB
+    ADD {$$ = $1; $$->code_name = $1->value;}
+    |   SUB {$$ = $1; $$->code_name = $1->value;}
 ;
 
 op2:    
-    MUL
-    |   DIV
-    |   MOD
+    MUL {$$ = $1; $$->code_name = $1->value;}
+    |   DIV {$$ = $1; $$->code_name = $1->value;}
+    |   MOD {$$ = $1; $$->code_name = $1->value;}
 ;
 
 op3:
-    GT
-    |   LT
-    |   GE
-    |   LE
-    |   COMP
-    |   NEQ
+    GT {$$ = $1; $$->code_name = $1->value;}
+    |   LT {$$ = $1; $$->code_name = $1->value;}
+    |   GE {$$ = $1; $$->code_name = $1->value;}
+    |   LE {$$ = $1; $$->code_name = $1->value;}
+    |   COMP {$$ = $1; $$->code_name = $1->value;}
+    |   NEQ {$$ = $1; $$->code_name = $1->value;}
 ;
 
 func_call:  
@@ -300,7 +409,7 @@ plist:
 int yyerror(char *s)
 {
   extern char *yytext;
-  printf("Line No.%d ERROR: %s at symbol %s\n",yylineno, s, yytext);
+  printf("Line No. %d ERROR: %s at symbol %s\n",yylineno, s, yytext);
 }
 
 int main(int argc, char* argv[])
@@ -316,21 +425,21 @@ int main(int argc, char* argv[])
 		yyparse();
 	} while(!feof(yyin));
 
-    for(auto i = var_list.begin(); i!=var_list.end(); i++){
-         cout<< *i <<endl;
-    }
+    // for(auto i = var_list.begin(); i!=var_list.end(); i++){
+    //      cout<< *i <<endl;
+    // }
 
-    cout << "Symbol Table\n";
-    for (auto it: sym_tab) {
-        cout << it.first << " ";
-        it.second.print();
-    }
+    // cout << "Symbol Table\n";
+    // for (auto it: sym_tab) {
+    //     cout << it.first << " ";
+    //     it.second.print();
+    // }
 
-    cout << "Function Table\n";
-    for (auto it: func_table) {
-        cout << it.first << " ";
-        it.second.print();
-    }
+    // cout << "Function Table\n";
+    // for (auto it: func_table) {
+    //     cout << it.first << " ";
+    //     it.second.print();
+    // }
 
 	return 0;
 }

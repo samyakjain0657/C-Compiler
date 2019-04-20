@@ -133,17 +133,28 @@ NEWLINE 			([\n])
 
 {SEMICOL}		{return SEMICOL;}
 {EQUALS}		{return EQUALS;}
-{ADD} 			{return ADD;}
-{SUB} 			{return SUB;}
-{MUL} 			{return MUL;}
-{DIV} 			{return DIV;}
-{MOD} 			{return MOD;}
-{GT} 			{return GT;}
-{LT} 			{return LT;}
-{GE} 			{return GE;}
-{LE} 			{return LE;}
-{COMP} 			{return COMP;}
-{NEQ} 			{return NEQ;}
+{ADD} 			{(yylval.datanode) = initialise("INT", yytext); 
+                return ADD;}
+{SUB} 			{(yylval.datanode) = initialise("INT", yytext); 
+                return SUB;}
+{MUL} 			{(yylval.datanode) = initialise("INT", yytext); 
+                return MUL;}
+{DIV} 			{(yylval.datanode) = initialise("INT", yytext); 
+                return DIV;}
+{MOD} 			{(yylval.datanode) = initialise("INT", yytext); 
+                return MOD;}
+{GT} 			{(yylval.datanode) = initialise("GT", yytext); 
+                return GT;}
+{LT} 			{(yylval.datanode) = initialise("LT", yytext); 
+                return LT;}
+{GE} 			{(yylval.datanode) = initialise("GE", yytext); 
+                return GE;}
+{LE} 			{(yylval.datanode) = initialise("LE", yytext); 
+                return LE;}
+{COMP} 			{(yylval.datanode) = initialise("COMP", yytext); 
+                return COMP;}
+{NEQ} 			{(yylval.datanode) = initialise("NEQ", yytext); 
+                return NEQ;}
 {MAIN} 			{return MAIN;}
 {IF} 			{return IF;}
 {FOR} 			{return FOR;}
