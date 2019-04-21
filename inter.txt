@@ -1,30 +1,38 @@
 func begin main
-_t9 = _var1
-_t8 = _var2
-_t7 = _t9 + _t8
-_t8 = _var2
-_t9 = _t8 - 6
+_var0 = 0
+_t9 = _var0
+LJ0:
+_t9 = _var0
+_t8 = _t9 < 10
+if _t8 <= 0 goto LF0
+goto LS0:
+LT0:
+_t8 = _var0
+_t9 = _t8 + 1
+_var0 = _t9
+_t9 = _var0
+goto LJ0
+LS0:
+_t5 = 1 * 1
+_t6 = _t5 + 2
+_t9 = _t6 * 4
+_t8 = addr(_var2)
+_t7 = _t8[_t9]
+CT0: 
+if _t7 != 1 goto CT1
+_var1 = 1
 _t8 = _var1
-_t2 = _t7 * 8
-_t3 = _t2 + _t9
-_t9 = _t3 * 2
-_t2 = _t9 + _t8
-_t6 = _t2 * 4
-_t5 = addr(_var3)
-_t4 = _t5[_t6]
-_var0 = _t4
-_t4 = _var0
-_t5 = _var1
-_t6 = _var2
-_t2 = _var2
-_t9 = _var1
-_t8 = _t9 + 6
-_t0 = _t5 * 8
-_t1 = _t0 + _t6
-_t6 = _t1 * 2
-_t0 = _t6 + _t2
-_t9 = _t0 * 4
-_t3 = addr(_var3)
-_t3[_t9] = _t8
-_t7 = _t3[_t9]
+goto SF0
+CT1: 
+if _t7 != 2 goto CT2
+_t9 = _var0
+_t6 = _t9 == 3
+if _t6 <= 0 goto IFF0
+goto LT0
+IFF0:
+CT2: 
+SF0:
+goto LT0
+LF0:
+return 0
 func end

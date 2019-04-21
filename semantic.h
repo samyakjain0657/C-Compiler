@@ -1,7 +1,8 @@
 // TODO
-// dims2 int type checking 
 // array float c
 // function return type
+// logical expression eval
+// relational expresssion eval
 
 #include <bits/stdc++.h>
 using namespace std;
@@ -16,7 +17,6 @@ enum DataType{
 	dt_func,
 	dt_err
 };
-
 
 ofstream file;
 
@@ -81,7 +81,7 @@ public:
 struct var{
     string type;
     string name;
-		string code_name;
+	string code_name;
     bool isParam;
     int level;
     string eletype;
@@ -95,8 +95,6 @@ struct var{
 		cout << endl;
 	}
 };
-
-
 
 struct func_table_entry {
     string name;
@@ -124,15 +122,21 @@ DataType active_type = dt_none;
 int var_counter = 0;
 int dim_count = 0;
 int param_count = 0;
-
+int res_counter = 0;
+int if_counter = 0;
+int loop_counter = 0;
+int switch_counter = 0;
+int case_counter = 0;
+string curr_temp;
 int scope;
 
 vector <string> var_list;
-vector <DataType> param_list;
+vector < pair<string, DataType > > param_list;
 vector <int> dimlist;
 vector <string> dimlist_call;
 vector <var> symbol_list;
 vector <string> temp_regs({"_t0","_t1","_t2","_t3","_t4","_t5","_t6","_t7","_t8","_t9"});
+stack <int> if_stack, loop_stack, last_used, switch_stack;
 
 func_table_entry* active_func_ptr=NULL;
 func_table_entry* call_name_ptr = NULL;
@@ -165,7 +169,6 @@ void search_param(string p, func_table_entry* fnptr, bool &found, var* &pnptr){
 	found=false;
 	pnptr=NULL;
 }
-
 
 void search_var(string p, func_table_entry* fnptr, int level, bool &found, var* &vn){
 	if(fnptr==NULL){
@@ -367,10 +370,10 @@ DataNode* check_func_call(string name){
 			int flag=0;
 			int j=0;
 			for(auto it=func->paramlist.begin();it!=func->paramlist.end();it++,j++){
-				if(((*it).eletype=="int")&&(param_list[j]==dt_int)){
+				if(((*it).eletype=="int")&&(param_list[j].second==dt_int)){
 
 				}
-				else if(((*it).eletype=="float")&&(param_list[j]== dt_float)){
+				else if(((*it).eletype=="float")&&(param_list[j].second== dt_float)){
 
 				}
 				else{
@@ -386,6 +389,9 @@ DataNode* check_func_call(string name){
 			}
 			else if (func->result_type == "float") {
 				res->data_type = dt_float;
+			}
+			else {
+				res->data_type = dt_none;
 			}
 			return res;
 		}

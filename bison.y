@@ -72,28 +72,38 @@ dclr:
 ;
 
 func_def:  
-    type ID LB {scope++;
+    type ID LB {
+        scope++;
         active_type = dt_none;
         enter_func(($2)->value,($1)->value,active_func_ptr);
         param_count=0;
+        file << "func begin " << ($2)->value << "\n";
     }
-    decl_plist RB LP 
-    {                  
+    decl_plist RB LP {                  
         scope++;
     } 
-    body 
-    {release_var(active_func_ptr,2),scope=0;}
+    body {
+        release_var(active_func_ptr,2);
+        scope=0;
+        file << "func end\n";
+    }
     RP
     |
-    VOID ID LB {scope++;
+    VOID ID LB {
+        scope++;
+        active_type = dt_none;
         enter_func(($2)->value,"void",active_func_ptr);
+        param_count=0;
+        file << "func begin " << ($2)->value << "\n";
     }
-    decl_plist RB LP 
-    {  
+    decl_plist RB LP {  
         scope++;
     } 
-    body 
-    {release_var(active_func_ptr,2),scope=0;}
+    body {
+        release_var(active_func_ptr,2);
+        scope=0;
+        file << "func end\n";
+    }
     RP
 ;
 
@@ -143,12 +153,17 @@ varl:
         bool chk = check_type($1, $3);
         if (chk) {
             enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
+            file << get_var_code_name($1->value) << " = " << $3->code_name << endl;
+            release_temp_name($3->code_name);
         }
     }
     | varl COMMA ID EQUALS arith_expr {
         bool chk = check_type($3, $5);
-        if (chk)
+        if (chk) {
             enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);
+            file << get_var_code_name($3->value) << " = " << $5->code_name << endl;
+            release_temp_name($5->code_name);
+        }
     }
     | varl COMMA ID 
     {   enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);}
@@ -166,21 +181,17 @@ dims:
 dims2:
     LS arith_expr RS 
     {
-        dim_count++;
-        dimlist_call.push_back($2->code_name);
+        if ($2->data_type == dt_int)
+            dimlist_call.push_back($2->code_name);
+        else 
+            cout << "Line No. " << yylineno << " Error : array subscript (" << dimlist_call.size() <<  ") is not an integer " << endl; 
     }
     | dims2 LS arith_expr RS
     {
-      //  $1->code_name*dimlist_call[dim_count]+$3->code_name;
-        // string temp_name = get_temp_name();
-        // string temp_name2 = get_temp_name();
-        // file << temp_name << " = " << $1->code_name << " * " << dimlist_call[dim_count] << endl;
-        // file << temp_name2 << " = " << temp_name << " + " << $3->code_name;
-        // release_temp_name(temp_name);
-        // release_temp_name($3->code_name);
-        // $$->code_name = temp_name2;
-        dimlist_call.push_back($3->code_name);
-        dim_count++;
+       if ($2->data_type == dt_int)
+            dimlist_call.push_back($3->code_name);
+        else 
+            cout << "Line No. " << yylineno << " Error : array subscript (" << dimlist_call.size() <<  ") is not an integer " << endl; 
     }
 ;
 
@@ -194,36 +205,96 @@ stmt_list:
 ;
 
 stmt:   
-    LP 
-    {
+    LP {
         scope++;   
     }
-    stmt_list
-    {   
+    stmt_list {   
         release_var(active_func_ptr,scope);
         scope--;
     } 
     RP
     |   var_dclr
     |   expr SEMICOL
-    |   CONTINUE SEMICOL
-    |   BREAK SEMICOL
+    |   CONTINUE SEMICOL {
+            if(loop_stack.size()==0)
+                cout << "Line No. " << yylineno << " Error : Continue should be always used inside a loop"<<endl; 
+            else
+                file << "goto LT" << loop_stack.top() << endl;
+        }
+    |   BREAK SEMICOL {
+            if(last_used.size()==0)
+                cout << "Line No. " << yylineno << " Error : break should be always used inside a loop or switch"<<endl; 
+            else if(last_used.top()==0)
+                file << "goto SF" << switch_stack.top() << endl;
+            else
+                file << "goto LF" << loop_stack.top() << endl;
+        }
     |   return_stmt SEMICOL
-    |   IF LB expr RB LP {scope++;}
-        stmt_list RP {
+    |   IF LB expr RB LP 
+        {
+            scope++;
+            file << "if " << $3->code_name << " <= 0 goto IFF" << if_counter << endl;
+            if_stack.push(if_counter++);
+            release_temp_name($3->code_name);
+        }
+        stmt_list RP 
+        {
             release_var(active_func_ptr,scope);
             scope--;
         }
         else_stmt
-    |   FOR LB expr SEMICOL expr SEMICOL expr RB LP {scope++;}stmt_list RP { 
-            release_var(active_func_ptr,scope);
-            scope--;
+    |   WHILE LB {
+            loop_stack.push(loop_counter);
+            last_used.push(1);
+            file << "LT" << loop_counter << ":\n";
         }
-    |   WHILE LB expr RB LP {scope++;} stmt_list RP {
+        expr RB{
+            file << "if "<<$4->code_name << " <= 0 goto LF" << loop_counter++ << endl;
+            release_temp_name($4->code_name);
+        } 
+        LP {
+            scope++; 
+        } 
+        stmt_list RP {
             release_var(active_func_ptr,scope);
             scope--;
+            file << "goto LT" << loop_stack.top()<< endl;
+            file << "LF" << loop_stack.top() << ":" << endl;
+            loop_stack.pop();
+            last_used.pop();
+        }
+    |   FOR LB expr SEMICOL 
+        {
+            loop_stack.push(loop_counter);
+            last_used.push(1);
+            file << "LJ" << loop_counter << ":\n";
+            release_temp_name($3->code_name);
+        }
+        expr SEMICOL
+        {
+            file << "if " << $6->code_name  << " <= 0 goto LF" << loop_counter << endl;
+            file << "goto LS" << loop_counter << ":" << endl;
+            file << "LT" << loop_counter << ":\n";
+            release_temp_name($6->code_name);
+        } 
+        expr RB LP 
+        {
+            scope++;
+            file << "goto LJ" << loop_counter << endl;
+            file << "LS" << loop_counter++ << ":\n";
+            release_temp_name($9->code_name);
+        }
+        stmt_list RP { 
+            release_var(active_func_ptr,scope);
+            scope--;
+            file << "goto LT" << loop_stack.top()<< endl;
+            file << "LF" << loop_stack.top() << ":" << endl;
+            loop_stack.pop();
+            last_used.pop();
         }
     |   SWITCH LB ID{
+            switch_stack.push(switch_counter++);
+            last_used.push(0);
             var *variable;
             bool found = false;
             search_var(($3)->value,active_func_ptr,scope,found,variable);
@@ -234,14 +305,22 @@ stmt:
                 if(variable->eletype!="int")
                     cout << "Line No. " << yylineno << " Error: expression must have integral type"<< endl; 
             } 
+            curr_temp = get_temp_name();
+            file << curr_temp << " = " << variable->code_name << endl;
         }
         RB LP { scope++; } 
         case_stmt default RP { 
             release_var(active_func_ptr,scope);
             scope--;
+            file << "SF" << switch_stack.top() << ":" << endl;
+            switch_stack.pop();
+            last_used.pop();
+            release_temp_name(curr_temp);
         }
     |   SWITCH LB ID dims2{
-           var *variable;
+            switch_stack.push(switch_counter++);
+            last_used.push(0);
+            var *variable;
             bool found = false;
             search_var(($3)->value,active_func_ptr,scope,found,variable);
             if(!found){
@@ -250,41 +329,107 @@ stmt:
             else{
                 if(variable->eletype!="int")
                     cout << "Line No. " << yylineno << " Error: expression must have integral type"<< endl; 
-            }            
+            }
+
+            string temp_name = dimlist_call[0];
+            string temp_name3 = get_temp_name();
+            string temp_name4 = get_temp_name();
+            string temp_name5 = get_temp_name();
+            string temp_name6;  
+            string temp_name2;      
+            vector<int> temp_dim_list = get_dimlist($3->value);
+            for (int i = 1; i < temp_dim_list.size(); i++) {
+                temp_name2 = get_temp_name(); 
+                temp_name6 = get_temp_name();    
+                file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << endl;
+                file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << endl;
+                release_temp_name(temp_name);
+                release_temp_name(dimlist_call[i]);
+                release_temp_name(temp_name6);
+                temp_name = temp_name2;
+            }
+            file << temp_name3 << " = " << temp_name2 << " * 4\n";
+            file << temp_name4 << " = " << "addr(" << get_var_code_name($3->value) << ")" << endl;
+            // file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << $4->code_name << endl;
+            file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name4);
+            temp_dim_list.clear();
+            dimlist_call.clear();
+            curr_temp = temp_name5;
+            // $$->code_name = temp_name5;
+                        
         }
         RB LP { scope++; } 
         case_stmt default RP { 
             release_var(active_func_ptr,scope);
             scope--;
+            file << "SF" << switch_stack.top() << ":" << endl;
+            switch_stack.pop();
+            last_used.pop();
+            release_temp_name(curr_temp);
         }
 ;
 
 else_stmt: 
-    ELSE LP {scope++;} stmt_list RP {
+    ELSE LP 
+    {
+        scope++;
+        file << "goto IFT" << if_stack.top() << endl; 
+        file << "IFF" << if_stack.top() << ":\n";
+    } 
+    stmt_list RP 
+    {
         release_var(active_func_ptr,scope);
         scope--;
+        file << "IFT" << if_stack.top() << ":\n";
+        if_stack.pop();
     }
     |   
+    {
+        file << "IFF" << if_stack.top() << ":\n";
+        if_stack.pop();
+    }
 ;
 
+
 case_stmt:
-    case_stmt CASE INT_VALUE COLON stmt_list
+    case_stmt 
+    {
+        file << "CT" << case_counter++ << ": " << endl;
+    }
+    CASE INT_VALUE 
+    {
+        file << "if " << curr_temp << " != " << $4->value << " goto CT" << case_counter << endl; 
+    }
+    COLON stmt_list
     |
 ;
 
 default:
-    DEFAULT COLON stmt_list
+    DEFAULT 
+    {
+        file << "CT" << case_counter++ << ": " << endl;
+    }
+    COLON stmt_list
     |
+    {
+        file << "CT" << case_counter++ << ": " << endl;
+    }
 ;
 
 return_stmt:    
-    RETURN
-    {
+    RETURN {
         DataNode *res = new DataNode();
         res->data_type = dt_none;
         $$ = res;
+        file << "return\n";
     }
-    | RETURN expr {$$ = check_func_return_type($2);}
+    | RETURN expr {
+        $$ = check_func_return_type($2);
+        file << "return " << $2->code_name << endl;
+    }
 ;
 
 expr:
@@ -346,6 +491,8 @@ rel_expr:
         DataNode *res = new DataNode();
         res->data_type = dt_bool;
         $$ = res;
+        string temp1 = $1->code_name;
+        string temp2 = $3->code_name;
         
         string temp_name = get_temp_name();
         file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << endl;
@@ -401,9 +548,7 @@ term:
         $$->code_name = temp_name;
     }
     |   ID dims2
-    {
-        dim_count = 0;
-        
+    {        
         set_data_type($1);
         
         $$ = $1;
@@ -416,6 +561,9 @@ term:
         string temp_name6;  
         string temp_name2;      
         vector<int> temp_dim_list = get_dimlist($1->value);
+        // for (auto it: dimlist_call) {
+        //     cout << it <<  " ";
+        // }cout << endl;
         for (int i = 1; i < temp_dim_list.size(); i++) {
             temp_name2 = get_temp_name(); 
             temp_name6 = get_temp_name();    
@@ -468,8 +616,27 @@ func_call:
     {
         DataNode* func = check_func_call(($1)->value);
         for (auto it: param_list) {
-
+            file << "param " << it.first << "\n";
+            release_temp_name(it.first);
         }
+        if(func->data_type == dt_int || func->data_type == dt_float ){
+            file << "refparam _result" << res_counter <<"\n"; 
+            var *variable = new var();
+            
+            if (func->data_type == dt_int)
+                variable->eletype = "int";
+            else
+                variable->eletype = "float";
+            
+            variable->name = "_result" + to_string(res_counter);
+            variable->code_name =  "_result" + to_string(res_counter++);
+            variable->level = scope;
+            variable->type = "simple";
+            variable->isParam = false;
+            symbol_list.push_back(*variable);
+            func->code_name =  variable->code_name;
+        }
+        file << "call " << ($1)->value <<"\n";
         param_list.clear();
         $$ = func;
     }
@@ -481,8 +648,8 @@ paramlist:
 ;
 
 plist:  
-    plist COMMA expr {param_list.push_back(($3)->data_type);}
-    | expr {param_list.push_back(($1)->data_type);}
+    plist COMMA expr {param_list.push_back({($3)->code_name,($3)->data_type});}
+    | expr {param_list.push_back({($1)->code_name,($1)->data_type});}
 ;
 
 %%

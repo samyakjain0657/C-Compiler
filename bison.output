@@ -7,9 +7,6 @@ Terminals unused in grammar
    WHITESPACE
 
 
-State 33 conflicts: 1 shift/reduce
-
-
 Grammar
 
     0 $accept: start $end
@@ -65,8 +62,8 @@ Grammar
    28     | FLOAT
 
    29 varl: ID
-   30     | ID EQUALS expr
-   31     | varl COMMA ID EQUALS expr
+   30     | ID EQUALS arith_expr
+   31     | varl COMMA ID EQUALS arith_expr
    32     | varl COMMA ID
    33     | ID dims
    34     | varl COMMA ID dims
@@ -74,8 +71,8 @@ Grammar
    35 dims: LS INT_VALUE RS
    36     | dims LS INT_VALUE RS
 
-   37 dims2: LS term RS
-   38      | dims2 LS term RS
+   37 dims2: LS arith_expr RS
+   38      | dims2 LS arith_expr RS
 
    39 body: stmt_list
 
@@ -101,137 +98,138 @@ Grammar
 
    53 $@15: %empty
 
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@15 stmt_list RP
+   54 $@16: %empty
 
-   55 $@16: %empty
+   55 $@17: %empty
 
-   56 stmt: WHILE LB expr RB LP $@16 stmt_list RP
+   56 stmt: WHILE LB $@15 expr RB $@16 LP $@17 stmt_list RP
 
-   57 $@17: %empty
+   57 $@18: %empty
 
-   58 $@18: %empty
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@18 stmt_list RP
 
-   59 stmt: SWITCH LB ID $@17 RB LP $@18 case_stmt default RP
+   59 $@19: %empty
 
-   60 $@19: %empty
+   60 $@20: %empty
 
-   61 $@20: %empty
+   61 stmt: SWITCH LB ID $@19 RB LP $@20 case_stmt default RP
 
-   62 stmt: SWITCH LB ID dims2 $@19 RB LP $@20 case_stmt default RP
+   62 $@21: %empty
 
-   63 $@21: %empty
+   63 $@22: %empty
 
-   64 else_stmt: ELSE LP $@21 stmt_list RP
-   65          | %empty
+   64 stmt: SWITCH LB ID dims2 $@21 RB LP $@22 case_stmt default RP
 
-   66 case_stmt: case_stmt CASE INT_VALUE COLON stmt_list
+   65 $@23: %empty
+
+   66 else_stmt: ELSE LP $@23 stmt_list RP
    67          | %empty
 
-   68 default: DEFAULT COLON stmt_list
-   69        | %empty
+   68 case_stmt: case_stmt CASE INT_VALUE COLON stmt_list
+   69          | %empty
 
-   70 return_stmt: RETURN
-   71            | RETURN expr
+   70 default: DEFAULT COLON stmt_list
+   71        | %empty
 
-   72 expr: arith_expr
-   73     | log_expr
-   74     | ID EQUALS arith_expr
-   75     | ID dims2 EQUALS arith_expr
+   72 return_stmt: RETURN
+   73            | RETURN expr
 
-   76 log_expr: log_expr OR rel_expr
-   77         | log_expr AND rel_expr
-   78         | rel_expr
+   74 expr: arith_expr
+   75     | log_expr
+   76     | ID EQUALS arith_expr
+   77     | ID dims2 EQUALS arith_expr
 
-   79 rel_expr: arith_expr op3 arith_expr
+   78 log_expr: log_expr OR rel_expr
+   79         | log_expr AND rel_expr
+   80         | rel_expr
 
-   80 arith_expr: arith_expr op1 expr1
-   81           | expr1
+   81 rel_expr: arith_expr op3 arith_expr
 
-   82 expr1: expr1 op2 term
-   83      | term
+   82 arith_expr: arith_expr op1 expr1
+   83           | expr1
 
-   84 term: LB arith_expr RB
-   85     | func_call
-   86     | const
-   87     | ID
+   84 expr1: expr1 op2 term
+   85      | term
 
-   88 $@22: %empty
+   86 term: LB arith_expr RB
+   87     | func_call
+   88     | const
+   89     | ID
+   90     | ID dims2
 
-   89 term: ID $@22 dims2
+   91 const: INT_VALUE
+   92      | FLOAT_VAL
 
-   90 const: INT_VALUE
-   91      | FLOAT_VAL
+   93 op1: ADD
+   94    | SUB
 
-   92 op1: ADD
-   93    | SUB
+   95 op2: MUL
+   96    | DIV
+   97    | MOD
 
-   94 op2: MUL
-   95    | DIV
-   96    | MOD
+   98 op3: GT
+   99    | LT
+  100    | GE
+  101    | LE
+  102    | COMP
+  103    | NEQ
 
-   97 op3: GT
-   98    | LT
-   99    | GE
-  100    | LE
-  101    | COMP
-  102    | NEQ
+  104 func_call: ID LB paramlist RB
 
-  103 func_call: ID LB paramlist RB
+  105 paramlist: plist
+  106          | %empty
 
-  104 paramlist: plist
-  105          | %empty
-
-  106 plist: plist COMMA expr
-  107      | expr
+  107 plist: plist COMMA expr
+  108      | expr
 
 
 Terminals, with rules where they appear
 
 $end (0) 0
 error (256)
-OR (258) 76
-AND (259) 77
-DEFAULT (260) 68
-CASE (261) 66
-COLON (262) 66 68
-SWITCH (263) 59 62
-SEMICOL (264) 26 46 47 48 49 54
-EQUALS (265) 30 31 74 75
-ADD (266) 92
-SUB (267) 93
-MUL (268) 94
-DIV (269) 95
-MOD (270) 96
-GT (271) 97
-LT (272) 98
-GE (273) 99
-LE (274) 100
-COMP (275) 101
-NEQ (276) 102
+OR (258) 78
+AND (259) 79
+DEFAULT (260) 70
+CASE (261) 68
+COLON (262) 68 70
+SWITCH (263) 61 64
+SEMICOL (264) 26 46 47 48 49 58
+EQUALS (265) 30 31 76 77
+ADD (266) 93
+SUB (267) 94
+MUL (268) 95
+DIV (269) 96
+MOD (270) 97
+GT (271) 98
+LT (272) 99
+GE (273) 100
+LE (274) 101
+COMP (275) 102
+NEQ (276) 103
 MAIN (277) 8
 IF (278) 52
-FOR (279) 54
+FOR (279) 58
 WHILE (280) 56
-ELSE (281) 64
+ELSE (281) 66
 INT (282) 8 27
 FLOAT (283) 28
 TRUE (284)
 FALSE (285)
 BOOL (286)
-LP (287) 8 16 20 44 52 54 56 59 62 64
-RP (288) 8 16 20 44 52 54 56 59 62 64
+LP (287) 8 16 20 44 52 56 58 61 64 66
+RP (288) 8 16 20 44 52 56 58 61 64 66
 LS (289) 35 36 37 38
 RS (290) 35 36 37 38
-LB (291) 8 16 20 52 54 56 59 62 84 103
-RB (292) 8 16 20 52 54 56 59 62 84 103
-RETURN (293) 70 71
+LB (291) 8 16 20 52 56 58 61 64 86 104
+RB (292) 8 16 20 52 56 58 61 64 86 104
+RETURN (293) 72 73
 BREAK (294) 48
 CONTINUE (295) 47
-COMMA (296) 23 31 32 34 106
-INT_VALUE (297) 35 36 66 90
-FLOAT_VAL (298) 91
+COMMA (296) 23 31 32 34 107
+INT_VALUE (297) 35 36 68 91
+FLOAT_VAL (298) 92
 LIBRARY (299) 4
-ID (300) 16 20 25 29 30 31 32 33 34 59 62 74 75 87 89 103
+ID (300) 16 20 25 29 30 31 32 33 34 61 64 76 77 89 90 104
 NEWLINE (301)
 WHITESPACE (302)
 VOID (303) 20
@@ -288,13 +286,13 @@ varl (71)
 dims (72)
     on left: 35 36, on right: 33 34 36
 dims2 (73)
-    on left: 37 38, on right: 38 62 75 89
+    on left: 37 38, on right: 38 64 77 90
 body (74)
     on left: 39, on right: 8 16 20
 stmt_list (75)
-    on left: 40 41, on right: 39 40 44 52 54 56 64 66 68
+    on left: 40 41, on right: 39 40 44 52 56 58 66 68 70
 stmt (76)
-    on left: 44 45 46 47 48 49 52 54 56 59 62, on right: 40
+    on left: 44 45 46 47 48 49 52 56 58 61 64, on right: 40
 $@11 (77)
     on left: 42, on right: 44
 $@12 (78)
@@ -304,55 +302,57 @@ $@13 (79)
 $@14 (80)
     on left: 51, on right: 52
 $@15 (81)
-    on left: 53, on right: 54
+    on left: 53, on right: 56
 $@16 (82)
-    on left: 55, on right: 56
+    on left: 54, on right: 56
 $@17 (83)
-    on left: 57, on right: 59
+    on left: 55, on right: 56
 $@18 (84)
-    on left: 58, on right: 59
+    on left: 57, on right: 58
 $@19 (85)
-    on left: 60, on right: 62
+    on left: 59, on right: 61
 $@20 (86)
-    on left: 61, on right: 62
-else_stmt (87)
-    on left: 64 65, on right: 52
-$@21 (88)
+    on left: 60, on right: 61
+$@21 (87)
+    on left: 62, on right: 64
+$@22 (88)
     on left: 63, on right: 64
-case_stmt (89)
-    on left: 66 67, on right: 59 62 66
-default (90)
-    on left: 68 69, on right: 59 62
-return_stmt (91)
-    on left: 70 71, on right: 49
-expr (92)
-    on left: 72 73 74 75, on right: 30 31 46 52 54 56 71 106 107
-log_expr (93)
-    on left: 76 77 78, on right: 73 76 77
-rel_expr (94)
-    on left: 79, on right: 76 77 78
-arith_expr (95)
-    on left: 80 81, on right: 72 74 75 79 80 84
-expr1 (96)
-    on left: 82 83, on right: 80 81 82
-term (97)
-    on left: 84 85 86 87 89, on right: 37 38 82 83
-$@22 (98)
-    on left: 88, on right: 89
-const (99)
-    on left: 90 91, on right: 86
-op1 (100)
-    on left: 92 93, on right: 80
-op2 (101)
-    on left: 94 95 96, on right: 82
-op3 (102)
-    on left: 97 98 99 100 101 102, on right: 79
-func_call (103)
-    on left: 103, on right: 85
-paramlist (104)
-    on left: 104 105, on right: 103
-plist (105)
-    on left: 106 107, on right: 104 106
+else_stmt (89)
+    on left: 66 67, on right: 52
+$@23 (90)
+    on left: 65, on right: 66
+case_stmt (91)
+    on left: 68 69, on right: 61 64 68
+default (92)
+    on left: 70 71, on right: 61 64
+return_stmt (93)
+    on left: 72 73, on right: 49
+expr (94)
+    on left: 74 75 76 77, on right: 46 52 56 58 73 107 108
+log_expr (95)
+    on left: 78 79 80, on right: 75 78 79
+rel_expr (96)
+    on left: 81, on right: 78 79 80
+arith_expr (97)
+    on left: 82 83, on right: 30 31 37 38 74 76 77 81 82 86
+expr1 (98)
+    on left: 84 85, on right: 82 83 84
+term (99)
+    on left: 86 87 88 89 90, on right: 84 85
+const (100)
+    on left: 91 92, on right: 88
+op1 (101)
+    on left: 93 94, on right: 82
+op2 (102)
+    on left: 95 96 97, on right: 84
+op3 (103)
+    on left: 98 99 100 101 102 103, on right: 81
+func_call (104)
+    on left: 104, on right: 87
+paramlist (105)
+    on left: 105 106, on right: 104
+plist (106)
+    on left: 107 108, on right: 105 107
 
 
 State 0
@@ -512,7 +512,7 @@ State 18
 
    16 func_def: type ID . LB $@5 decl_plist RB LP $@6 body $@7 RP
    29 varl: ID .
-   30     | ID . EQUALS expr
+   30     | ID . EQUALS arith_expr
    33     | ID . dims
 
     EQUALS  shift, and go to state 22
@@ -527,7 +527,7 @@ State 18
 State 19
 
    26 var_dclr: type varl . SEMICOL
-   31 varl: varl . COMMA ID EQUALS expr
+   31 varl: varl . COMMA ID EQUALS arith_expr
    32     | varl . COMMA ID
    34     | varl . COMMA ID dims
 
@@ -553,28 +553,25 @@ State 21
 
 State 22
 
-   30 varl: ID EQUALS . expr
+   30 varl: ID EQUALS . arith_expr
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
     ID         shift, and go to state 33
 
-    expr        go to state 34
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    arith_expr  go to state 34
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
 State 23
 
    35 dims: LS . INT_VALUE RS
 
-    INT_VALUE  shift, and go to state 42
+    INT_VALUE  shift, and go to state 39
 
 
 State 24
@@ -583,7 +580,7 @@ State 24
 
     $default  reduce using rule 13 ($@5)
 
-    $@5  go to state 43
+    $@5  go to state 40
 
 
 State 25
@@ -591,7 +588,7 @@ State 25
    33 varl: ID dims .
    36 dims: dims . LS INT_VALUE RS
 
-    LS  shift, and go to state 44
+    LS  shift, and go to state 41
 
     $default  reduce using rule 33 (varl)
 
@@ -605,1153 +602,1145 @@ State 26
 
 State 27
 
-   31 varl: varl COMMA . ID EQUALS expr
+   31 varl: varl COMMA . ID EQUALS arith_expr
    32     | varl COMMA . ID
    34     | varl COMMA . ID dims
 
-    ID  shift, and go to state 45
+    ID  shift, and go to state 42
 
 
 State 28
 
     8 body_main: INT MAIN LB RB . LP $@3 body $@4 RP
 
-    LP  shift, and go to state 46
+    LP  shift, and go to state 43
 
 
 State 29
 
    20 func_def: VOID ID LB $@8 . decl_plist RB LP $@9 body $@10 RP
 
-    INT    shift, and go to state 47
+    INT    shift, and go to state 44
     FLOAT  shift, and go to state 9
 
     $default  reduce using rule 22 (decl_plist)
 
-    decl_plist  go to state 48
-    decl_pl     go to state 49
-    decl_param  go to state 50
-    type        go to state 51
+    decl_plist  go to state 45
+    decl_pl     go to state 46
+    decl_param  go to state 47
+    type        go to state 48
 
 
 State 30
 
-   84 term: LB . arith_expr RB
+   86 term: LB . arith_expr RB
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
+    ID         shift, and go to state 33
 
-    arith_expr  go to state 53
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    arith_expr  go to state 49
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
 State 31
 
-   90 const: INT_VALUE .
-
-    $default  reduce using rule 90 (const)
-
-
-State 32
-
-   91 const: FLOAT_VAL .
+   91 const: INT_VALUE .
 
     $default  reduce using rule 91 (const)
 
 
+State 32
+
+   92 const: FLOAT_VAL .
+
+    $default  reduce using rule 92 (const)
+
+
 State 33
 
-   74 expr: ID . EQUALS arith_expr
-   75     | ID . dims2 EQUALS arith_expr
-   87 term: ID .
-   89     | ID . $@22 dims2
-  103 func_call: ID . LB paramlist RB
+   89 term: ID .
+   90     | ID . dims2
+  104 func_call: ID . LB paramlist RB
 
-    EQUALS  shift, and go to state 54
-    LS      shift, and go to state 55
-    LB      shift, and go to state 56
+    LS  shift, and go to state 50
+    LB  shift, and go to state 51
 
-    LS        [reduce using rule 88 ($@22)]
-    $default  reduce using rule 87 (term)
+    $default  reduce using rule 89 (term)
 
-    dims2  go to state 57
-    $@22   go to state 58
+    dims2  go to state 52
 
 
 State 34
 
-   30 varl: ID EQUALS expr .
+   30 varl: ID EQUALS arith_expr .
+   82 arith_expr: arith_expr . op1 expr1
+
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
 
     $default  reduce using rule 30 (varl)
+
+    op1  go to state 55
 
 
 State 35
 
-   73 expr: log_expr .
-   76 log_expr: log_expr . OR rel_expr
-   77         | log_expr . AND rel_expr
+   83 arith_expr: expr1 .
+   84 expr1: expr1 . op2 term
 
-    OR   shift, and go to state 59
-    AND  shift, and go to state 60
+    MUL  shift, and go to state 56
+    DIV  shift, and go to state 57
+    MOD  shift, and go to state 58
 
-    $default  reduce using rule 73 (expr)
+    $default  reduce using rule 83 (arith_expr)
+
+    op2  go to state 59
 
 
 State 36
 
-   78 log_expr: rel_expr .
+   85 expr1: term .
 
-    $default  reduce using rule 78 (log_expr)
+    $default  reduce using rule 85 (expr1)
 
 
 State 37
 
-   72 expr: arith_expr .
-   79 rel_expr: arith_expr . op3 arith_expr
-   80 arith_expr: arith_expr . op1 expr1
+   88 term: const .
 
-    ADD   shift, and go to state 61
-    SUB   shift, and go to state 62
-    GT    shift, and go to state 63
-    LT    shift, and go to state 64
-    GE    shift, and go to state 65
-    LE    shift, and go to state 66
-    COMP  shift, and go to state 67
-    NEQ   shift, and go to state 68
-
-    $default  reduce using rule 72 (expr)
-
-    op1  go to state 69
-    op3  go to state 70
+    $default  reduce using rule 88 (term)
 
 
 State 38
 
-   81 arith_expr: expr1 .
-   82 expr1: expr1 . op2 term
+   87 term: func_call .
 
-    MUL  shift, and go to state 71
-    DIV  shift, and go to state 72
-    MOD  shift, and go to state 73
-
-    $default  reduce using rule 81 (arith_expr)
-
-    op2  go to state 74
+    $default  reduce using rule 87 (term)
 
 
 State 39
 
-   83 expr1: term .
+   35 dims: LS INT_VALUE . RS
 
-    $default  reduce using rule 83 (expr1)
+    RS  shift, and go to state 60
 
 
 State 40
 
-   86 term: const .
-
-    $default  reduce using rule 86 (term)
-
-
-State 41
-
-   85 term: func_call .
-
-    $default  reduce using rule 85 (term)
-
-
-State 42
-
-   35 dims: LS INT_VALUE . RS
-
-    RS  shift, and go to state 75
-
-
-State 43
-
    16 func_def: type ID LB $@5 . decl_plist RB LP $@6 body $@7 RP
 
-    INT    shift, and go to state 47
+    INT    shift, and go to state 44
     FLOAT  shift, and go to state 9
 
     $default  reduce using rule 22 (decl_plist)
 
-    decl_plist  go to state 76
-    decl_pl     go to state 49
-    decl_param  go to state 50
-    type        go to state 51
+    decl_plist  go to state 61
+    decl_pl     go to state 46
+    decl_param  go to state 47
+    type        go to state 48
 
 
-State 44
+State 41
 
    36 dims: dims LS . INT_VALUE RS
 
-    INT_VALUE  shift, and go to state 77
+    INT_VALUE  shift, and go to state 62
 
 
-State 45
+State 42
 
-   31 varl: varl COMMA ID . EQUALS expr
+   31 varl: varl COMMA ID . EQUALS arith_expr
    32     | varl COMMA ID .
    34     | varl COMMA ID . dims
 
-    EQUALS  shift, and go to state 78
+    EQUALS  shift, and go to state 63
     LS      shift, and go to state 23
 
     $default  reduce using rule 32 (varl)
 
-    dims  go to state 79
+    dims  go to state 64
 
 
-State 46
+State 43
 
     8 body_main: INT MAIN LB RB LP . $@3 body $@4 RP
 
     $default  reduce using rule 6 ($@3)
 
-    $@3  go to state 80
+    $@3  go to state 65
 
 
-State 47
+State 44
 
    27 type: INT .
 
     $default  reduce using rule 27 (type)
 
 
-State 48
+State 45
 
    20 func_def: VOID ID LB $@8 decl_plist . RB LP $@9 body $@10 RP
 
-    RB  shift, and go to state 81
+    RB  shift, and go to state 66
 
 
-State 49
+State 46
 
    21 decl_plist: decl_pl .
    23 decl_pl: decl_pl . COMMA decl_param
 
-    COMMA  shift, and go to state 82
+    COMMA  shift, and go to state 67
 
     $default  reduce using rule 21 (decl_plist)
 
 
-State 50
+State 47
 
    24 decl_pl: decl_param .
 
     $default  reduce using rule 24 (decl_pl)
 
 
-State 51
+State 48
 
    25 decl_param: type . ID
 
-    ID  shift, and go to state 83
+    ID  shift, and go to state 68
 
 
-State 52
+State 49
 
-   87 term: ID .
-   89     | ID . $@22 dims2
-  103 func_call: ID . LB paramlist RB
+   82 arith_expr: arith_expr . op1 expr1
+   86 term: LB arith_expr . RB
 
-    LB  shift, and go to state 56
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
+    RB   shift, and go to state 69
 
-    LS        reduce using rule 88 ($@22)
-    $default  reduce using rule 87 (term)
-
-    $@22  go to state 58
+    op1  go to state 55
 
 
-State 53
+State 50
 
-   80 arith_expr: arith_expr . op1 expr1
-   84 term: LB arith_expr . RB
-
-    ADD  shift, and go to state 61
-    SUB  shift, and go to state 62
-    RB   shift, and go to state 84
-
-    op1  go to state 69
-
-
-State 54
-
-   74 expr: ID EQUALS . arith_expr
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
-
-    arith_expr  go to state 85
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
-
-
-State 55
-
-   37 dims2: LS . term RS
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
-
-    term       go to state 86
-    const      go to state 40
-    func_call  go to state 41
-
-
-State 56
-
-  103 func_call: ID LB . paramlist RB
+   37 dims2: LS . arith_expr RS
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
     ID         shift, and go to state 33
 
-    $default  reduce using rule 105 (paramlist)
-
-    expr        go to state 87
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
-    paramlist   go to state 88
-    plist       go to state 89
+    arith_expr  go to state 70
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
-State 57
+State 51
 
-   38 dims2: dims2 . LS term RS
-   75 expr: ID dims2 . EQUALS arith_expr
-
-    EQUALS  shift, and go to state 90
-    LS      shift, and go to state 91
-
-
-State 58
-
-   89 term: ID $@22 . dims2
-
-    LS  shift, and go to state 55
-
-    dims2  go to state 92
-
-
-State 59
-
-   76 log_expr: log_expr OR . rel_expr
+  104 func_call: ID LB . paramlist RB
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
+    ID         shift, and go to state 71
 
-    rel_expr    go to state 93
-    arith_expr  go to state 94
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    $default  reduce using rule 106 (paramlist)
 
-
-State 60
-
-   77 log_expr: log_expr AND . rel_expr
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
-
-    rel_expr    go to state 95
-    arith_expr  go to state 94
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    expr        go to state 72
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+    paramlist   go to state 76
+    plist       go to state 77
 
 
-State 61
+State 52
 
-   92 op1: ADD .
+   38 dims2: dims2 . LS arith_expr RS
+   90 term: ID dims2 .
 
-    $default  reduce using rule 92 (op1)
+    LS  shift, and go to state 78
+
+    $default  reduce using rule 90 (term)
 
 
-State 62
+State 53
 
-   93 op1: SUB .
+   93 op1: ADD .
 
     $default  reduce using rule 93 (op1)
 
 
-State 63
+State 54
 
-   97 op3: GT .
+   94 op1: SUB .
 
-    $default  reduce using rule 97 (op3)
-
-
-State 64
-
-   98 op3: LT .
-
-    $default  reduce using rule 98 (op3)
+    $default  reduce using rule 94 (op1)
 
 
-State 65
+State 55
 
-   99 op3: GE .
-
-    $default  reduce using rule 99 (op3)
-
-
-State 66
-
-  100 op3: LE .
-
-    $default  reduce using rule 100 (op3)
-
-
-State 67
-
-  101 op3: COMP .
-
-    $default  reduce using rule 101 (op3)
-
-
-State 68
-
-  102 op3: NEQ .
-
-    $default  reduce using rule 102 (op3)
-
-
-State 69
-
-   80 arith_expr: arith_expr op1 . expr1
+   82 arith_expr: arith_expr op1 . expr1
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
+    ID         shift, and go to state 33
 
-    expr1      go to state 96
-    term       go to state 39
-    const      go to state 40
-    func_call  go to state 41
-
-
-State 70
-
-   79 rel_expr: arith_expr op3 . arith_expr
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
-
-    arith_expr  go to state 97
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    expr1      go to state 79
+    term       go to state 36
+    const      go to state 37
+    func_call  go to state 38
 
 
-State 71
+State 56
 
-   94 op2: MUL .
-
-    $default  reduce using rule 94 (op2)
-
-
-State 72
-
-   95 op2: DIV .
+   95 op2: MUL .
 
     $default  reduce using rule 95 (op2)
 
 
-State 73
+State 57
 
-   96 op2: MOD .
+   96 op2: DIV .
 
     $default  reduce using rule 96 (op2)
 
 
-State 74
+State 58
 
-   82 expr1: expr1 op2 . term
+   97 op2: MOD .
+
+    $default  reduce using rule 97 (op2)
+
+
+State 59
+
+   84 expr1: expr1 op2 . term
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
+    ID         shift, and go to state 33
 
-    term       go to state 98
-    const      go to state 40
-    func_call  go to state 41
+    term       go to state 80
+    const      go to state 37
+    func_call  go to state 38
 
 
-State 75
+State 60
 
    35 dims: LS INT_VALUE RS .
 
     $default  reduce using rule 35 (dims)
 
 
-State 76
+State 61
 
    16 func_def: type ID LB $@5 decl_plist . RB LP $@6 body $@7 RP
 
-    RB  shift, and go to state 99
+    RB  shift, and go to state 81
 
 
-State 77
+State 62
 
    36 dims: dims LS INT_VALUE . RS
 
-    RS  shift, and go to state 100
+    RS  shift, and go to state 82
 
 
-State 78
+State 63
 
-   31 varl: varl COMMA ID EQUALS . expr
+   31 varl: varl COMMA ID EQUALS . arith_expr
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
     ID         shift, and go to state 33
 
-    expr        go to state 101
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    arith_expr  go to state 83
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
-State 79
+State 64
 
    34 varl: varl COMMA ID dims .
    36 dims: dims . LS INT_VALUE RS
 
-    LS  shift, and go to state 44
+    LS  shift, and go to state 41
 
     $default  reduce using rule 34 (varl)
 
 
-State 80
+State 65
 
     8 body_main: INT MAIN LB RB LP $@3 . body $@4 RP
 
     $default  reduce using rule 41 (stmt_list)
 
-    body       go to state 102
-    stmt_list  go to state 103
+    body       go to state 84
+    stmt_list  go to state 85
 
 
-State 81
+State 66
 
    20 func_def: VOID ID LB $@8 decl_plist RB . LP $@9 body $@10 RP
 
-    LP  shift, and go to state 104
+    LP  shift, and go to state 86
 
 
-State 82
+State 67
 
    23 decl_pl: decl_pl COMMA . decl_param
 
-    INT    shift, and go to state 47
+    INT    shift, and go to state 44
     FLOAT  shift, and go to state 9
 
-    decl_param  go to state 105
-    type        go to state 51
+    decl_param  go to state 87
+    type        go to state 48
 
 
-State 83
+State 68
 
    25 decl_param: type ID .
 
     $default  reduce using rule 25 (decl_param)
 
 
-State 84
+State 69
 
-   84 term: LB arith_expr RB .
+   86 term: LB arith_expr RB .
 
-    $default  reduce using rule 84 (term)
-
-
-State 85
-
-   74 expr: ID EQUALS arith_expr .
-   80 arith_expr: arith_expr . op1 expr1
-
-    ADD  shift, and go to state 61
-    SUB  shift, and go to state 62
-
-    $default  reduce using rule 74 (expr)
-
-    op1  go to state 69
+    $default  reduce using rule 86 (term)
 
 
-State 86
+State 70
 
-   37 dims2: LS term . RS
+   37 dims2: LS arith_expr . RS
+   82 arith_expr: arith_expr . op1 expr1
 
-    RS  shift, and go to state 106
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
+    RS   shift, and go to state 88
 
-
-State 87
-
-  107 plist: expr .
-
-    $default  reduce using rule 107 (plist)
+    op1  go to state 55
 
 
-State 88
+State 71
 
-  103 func_call: ID LB paramlist . RB
+   76 expr: ID . EQUALS arith_expr
+   77     | ID . dims2 EQUALS arith_expr
+   89 term: ID .
+   90     | ID . dims2
+  104 func_call: ID . LB paramlist RB
 
-    RB  shift, and go to state 107
-
-
-State 89
-
-  104 paramlist: plist .
-  106 plist: plist . COMMA expr
-
-    COMMA  shift, and go to state 108
-
-    $default  reduce using rule 104 (paramlist)
-
-
-State 90
-
-   75 expr: ID dims2 EQUALS . arith_expr
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
-
-    arith_expr  go to state 109
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
-
-
-State 91
-
-   38 dims2: dims2 LS . term RS
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 52
-
-    term       go to state 110
-    const      go to state 40
-    func_call  go to state 41
-
-
-State 92
-
-   38 dims2: dims2 . LS term RS
-   89 term: ID $@22 dims2 .
-
-    LS  shift, and go to state 91
+    EQUALS  shift, and go to state 89
+    LS      shift, and go to state 50
+    LB      shift, and go to state 51
 
     $default  reduce using rule 89 (term)
 
-
-State 93
-
-   76 log_expr: log_expr OR rel_expr .
-
-    $default  reduce using rule 76 (log_expr)
+    dims2  go to state 90
 
 
-State 94
+State 72
 
-   79 rel_expr: arith_expr . op3 arith_expr
-   80 arith_expr: arith_expr . op1 expr1
+  108 plist: expr .
 
-    ADD   shift, and go to state 61
-    SUB   shift, and go to state 62
-    GT    shift, and go to state 63
-    LT    shift, and go to state 64
-    GE    shift, and go to state 65
-    LE    shift, and go to state 66
-    COMP  shift, and go to state 67
-    NEQ   shift, and go to state 68
-
-    op1  go to state 69
-    op3  go to state 70
+    $default  reduce using rule 108 (plist)
 
 
-State 95
+State 73
 
-   77 log_expr: log_expr AND rel_expr .
+   75 expr: log_expr .
+   78 log_expr: log_expr . OR rel_expr
+   79         | log_expr . AND rel_expr
 
-    $default  reduce using rule 77 (log_expr)
+    OR   shift, and go to state 91
+    AND  shift, and go to state 92
 
-
-State 96
-
-   80 arith_expr: arith_expr op1 expr1 .
-   82 expr1: expr1 . op2 term
-
-    MUL  shift, and go to state 71
-    DIV  shift, and go to state 72
-    MOD  shift, and go to state 73
-
-    $default  reduce using rule 80 (arith_expr)
-
-    op2  go to state 74
+    $default  reduce using rule 75 (expr)
 
 
-State 97
+State 74
 
-   79 rel_expr: arith_expr op3 arith_expr .
-   80 arith_expr: arith_expr . op1 expr1
+   80 log_expr: rel_expr .
 
-    ADD  shift, and go to state 61
-    SUB  shift, and go to state 62
-
-    $default  reduce using rule 79 (rel_expr)
-
-    op1  go to state 69
+    $default  reduce using rule 80 (log_expr)
 
 
-State 98
+State 75
 
-   82 expr1: expr1 op2 term .
+   74 expr: arith_expr .
+   81 rel_expr: arith_expr . op3 arith_expr
+   82 arith_expr: arith_expr . op1 expr1
 
-    $default  reduce using rule 82 (expr1)
+    ADD   shift, and go to state 53
+    SUB   shift, and go to state 54
+    GT    shift, and go to state 93
+    LT    shift, and go to state 94
+    GE    shift, and go to state 95
+    LE    shift, and go to state 96
+    COMP  shift, and go to state 97
+    NEQ   shift, and go to state 98
+
+    $default  reduce using rule 74 (expr)
+
+    op1  go to state 55
+    op3  go to state 99
 
 
-State 99
+State 76
+
+  104 func_call: ID LB paramlist . RB
+
+    RB  shift, and go to state 100
+
+
+State 77
+
+  105 paramlist: plist .
+  107 plist: plist . COMMA expr
+
+    COMMA  shift, and go to state 101
+
+    $default  reduce using rule 105 (paramlist)
+
+
+State 78
+
+   38 dims2: dims2 LS . arith_expr RS
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 33
+
+    arith_expr  go to state 102
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 79
+
+   82 arith_expr: arith_expr op1 expr1 .
+   84 expr1: expr1 . op2 term
+
+    MUL  shift, and go to state 56
+    DIV  shift, and go to state 57
+    MOD  shift, and go to state 58
+
+    $default  reduce using rule 82 (arith_expr)
+
+    op2  go to state 59
+
+
+State 80
+
+   84 expr1: expr1 op2 term .
+
+    $default  reduce using rule 84 (expr1)
+
+
+State 81
 
    16 func_def: type ID LB $@5 decl_plist RB . LP $@6 body $@7 RP
 
-    LP  shift, and go to state 111
+    LP  shift, and go to state 103
 
 
-State 100
+State 82
 
    36 dims: dims LS INT_VALUE RS .
 
     $default  reduce using rule 36 (dims)
 
 
-State 101
+State 83
 
-   31 varl: varl COMMA ID EQUALS expr .
+   31 varl: varl COMMA ID EQUALS arith_expr .
+   82 arith_expr: arith_expr . op1 expr1
+
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
 
     $default  reduce using rule 31 (varl)
 
+    op1  go to state 55
 
-State 102
+
+State 84
 
     8 body_main: INT MAIN LB RB LP $@3 body . $@4 RP
 
     $default  reduce using rule 7 ($@4)
 
-    $@4  go to state 112
+    $@4  go to state 104
 
 
-State 103
+State 85
 
    39 body: stmt_list .
    40 stmt_list: stmt_list . stmt
 
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
     FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
+    LP         shift, and go to state 109
     LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
+    ID         shift, and go to state 71
 
     $default  reduce using rule 39 (body)
 
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
 
 
-State 104
+State 86
 
    20 func_def: VOID ID LB $@8 decl_plist RB LP . $@9 body $@10 RP
 
     $default  reduce using rule 18 ($@9)
 
-    $@9  go to state 126
+    $@9  go to state 118
 
 
-State 105
+State 87
 
    23 decl_pl: decl_pl COMMA decl_param .
 
     $default  reduce using rule 23 (decl_pl)
 
 
-State 106
+State 88
 
-   37 dims2: LS term RS .
+   37 dims2: LS arith_expr RS .
 
     $default  reduce using rule 37 (dims2)
 
 
-State 107
+State 89
 
-  103 func_call: ID LB paramlist RB .
-
-    $default  reduce using rule 103 (func_call)
-
-
-State 108
-
-  106 plist: plist COMMA . expr
+   76 expr: ID EQUALS . arith_expr
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
     ID         shift, and go to state 33
 
-    expr        go to state 127
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    arith_expr  go to state 119
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
-State 109
+State 90
 
-   75 expr: ID dims2 EQUALS arith_expr .
-   80 arith_expr: arith_expr . op1 expr1
+   38 dims2: dims2 . LS arith_expr RS
+   77 expr: ID dims2 . EQUALS arith_expr
+   90 term: ID dims2 .
 
-    ADD  shift, and go to state 61
-    SUB  shift, and go to state 62
+    EQUALS  shift, and go to state 120
+    LS      shift, and go to state 78
 
-    $default  reduce using rule 75 (expr)
-
-    op1  go to state 69
-
-
-State 110
-
-   38 dims2: dims2 LS term . RS
-
-    RS  shift, and go to state 128
+    $default  reduce using rule 90 (term)
 
 
-State 111
+State 91
+
+   78 log_expr: log_expr OR . rel_expr
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 33
+
+    rel_expr    go to state 121
+    arith_expr  go to state 122
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 92
+
+   79 log_expr: log_expr AND . rel_expr
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 33
+
+    rel_expr    go to state 123
+    arith_expr  go to state 122
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 93
+
+   98 op3: GT .
+
+    $default  reduce using rule 98 (op3)
+
+
+State 94
+
+   99 op3: LT .
+
+    $default  reduce using rule 99 (op3)
+
+
+State 95
+
+  100 op3: GE .
+
+    $default  reduce using rule 100 (op3)
+
+
+State 96
+
+  101 op3: LE .
+
+    $default  reduce using rule 101 (op3)
+
+
+State 97
+
+  102 op3: COMP .
+
+    $default  reduce using rule 102 (op3)
+
+
+State 98
+
+  103 op3: NEQ .
+
+    $default  reduce using rule 103 (op3)
+
+
+State 99
+
+   81 rel_expr: arith_expr op3 . arith_expr
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 33
+
+    arith_expr  go to state 124
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 100
+
+  104 func_call: ID LB paramlist RB .
+
+    $default  reduce using rule 104 (func_call)
+
+
+State 101
+
+  107 plist: plist COMMA . expr
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
+
+    expr        go to state 125
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 102
+
+   38 dims2: dims2 LS arith_expr . RS
+   82 arith_expr: arith_expr . op1 expr1
+
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
+    RS   shift, and go to state 126
+
+    op1  go to state 55
+
+
+State 103
 
    16 func_def: type ID LB $@5 decl_plist RB LP . $@6 body $@7 RP
 
     $default  reduce using rule 14 ($@6)
 
-    $@6  go to state 129
+    $@6  go to state 127
 
 
-State 112
+State 104
 
     8 body_main: INT MAIN LB RB LP $@3 body $@4 . RP
 
-    RP  shift, and go to state 130
+    RP  shift, and go to state 128
 
 
-State 113
+State 105
 
-   59 stmt: SWITCH . LB ID $@17 RB LP $@18 case_stmt default RP
-   62     | SWITCH . LB ID dims2 $@19 RB LP $@20 case_stmt default RP
+   61 stmt: SWITCH . LB ID $@19 RB LP $@20 case_stmt default RP
+   64     | SWITCH . LB ID dims2 $@21 RB LP $@22 case_stmt default RP
+
+    LB  shift, and go to state 129
+
+
+State 106
+
+   52 stmt: IF . LB expr RB LP $@13 stmt_list RP $@14 else_stmt
+
+    LB  shift, and go to state 130
+
+
+State 107
+
+   58 stmt: FOR . LB expr SEMICOL expr SEMICOL expr RB LP $@18 stmt_list RP
 
     LB  shift, and go to state 131
 
 
-State 114
+State 108
 
-   52 stmt: IF . LB expr RB LP $@13 stmt_list RP $@14 else_stmt
+   56 stmt: WHILE . LB $@15 expr RB $@16 LP $@17 stmt_list RP
 
     LB  shift, and go to state 132
 
 
-State 115
-
-   54 stmt: FOR . LB expr SEMICOL expr SEMICOL expr RB LP $@15 stmt_list RP
-
-    LB  shift, and go to state 133
-
-
-State 116
-
-   56 stmt: WHILE . LB expr RB LP $@16 stmt_list RP
-
-    LB  shift, and go to state 134
-
-
-State 117
+State 109
 
    44 stmt: LP . $@11 stmt_list $@12 RP
 
     $default  reduce using rule 42 ($@11)
 
-    $@11  go to state 135
+    $@11  go to state 133
 
 
-State 118
+State 110
 
-   70 return_stmt: RETURN .
-   71            | RETURN . expr
+   72 return_stmt: RETURN .
+   73            | RETURN . expr
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
+    ID         shift, and go to state 71
 
-    $default  reduce using rule 70 (return_stmt)
+    $default  reduce using rule 72 (return_stmt)
 
-    expr        go to state 136
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    expr        go to state 134
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
-State 119
+State 111
 
    48 stmt: BREAK . SEMICOL
 
-    SEMICOL  shift, and go to state 137
+    SEMICOL  shift, and go to state 135
 
 
-State 120
+State 112
 
    47 stmt: CONTINUE . SEMICOL
 
-    SEMICOL  shift, and go to state 138
+    SEMICOL  shift, and go to state 136
 
 
-State 121
+State 113
 
    45 stmt: var_dclr .
 
     $default  reduce using rule 45 (stmt)
 
 
-State 122
+State 114
 
    26 var_dclr: type . varl SEMICOL
 
-    ID  shift, and go to state 139
+    ID  shift, and go to state 137
 
     varl  go to state 19
 
 
-State 123
+State 115
 
    40 stmt_list: stmt_list stmt .
 
     $default  reduce using rule 40 (stmt_list)
 
 
-State 124
+State 116
 
    49 stmt: return_stmt . SEMICOL
 
-    SEMICOL  shift, and go to state 140
+    SEMICOL  shift, and go to state 138
 
 
-State 125
+State 117
 
    46 stmt: expr . SEMICOL
 
-    SEMICOL  shift, and go to state 141
+    SEMICOL  shift, and go to state 139
 
 
-State 126
+State 118
 
    20 func_def: VOID ID LB $@8 decl_plist RB LP $@9 . body $@10 RP
 
     $default  reduce using rule 41 (stmt_list)
 
-    body       go to state 142
-    stmt_list  go to state 103
+    body       go to state 140
+    stmt_list  go to state 85
 
 
-State 127
+State 119
 
-  106 plist: plist COMMA expr .
+   76 expr: ID EQUALS arith_expr .
+   82 arith_expr: arith_expr . op1 expr1
 
-    $default  reduce using rule 106 (plist)
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
+
+    $default  reduce using rule 76 (expr)
+
+    op1  go to state 55
 
 
-State 128
+State 120
 
-   38 dims2: dims2 LS term RS .
+   77 expr: ID dims2 EQUALS . arith_expr
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 33
+
+    arith_expr  go to state 141
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 121
+
+   78 log_expr: log_expr OR rel_expr .
+
+    $default  reduce using rule 78 (log_expr)
+
+
+State 122
+
+   81 rel_expr: arith_expr . op3 arith_expr
+   82 arith_expr: arith_expr . op1 expr1
+
+    ADD   shift, and go to state 53
+    SUB   shift, and go to state 54
+    GT    shift, and go to state 93
+    LT    shift, and go to state 94
+    GE    shift, and go to state 95
+    LE    shift, and go to state 96
+    COMP  shift, and go to state 97
+    NEQ   shift, and go to state 98
+
+    op1  go to state 55
+    op3  go to state 99
+
+
+State 123
+
+   79 log_expr: log_expr AND rel_expr .
+
+    $default  reduce using rule 79 (log_expr)
+
+
+State 124
+
+   81 rel_expr: arith_expr op3 arith_expr .
+   82 arith_expr: arith_expr . op1 expr1
+
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
+
+    $default  reduce using rule 81 (rel_expr)
+
+    op1  go to state 55
+
+
+State 125
+
+  107 plist: plist COMMA expr .
+
+    $default  reduce using rule 107 (plist)
+
+
+State 126
+
+   38 dims2: dims2 LS arith_expr RS .
 
     $default  reduce using rule 38 (dims2)
 
 
-State 129
+State 127
 
    16 func_def: type ID LB $@5 decl_plist RB LP $@6 . body $@7 RP
 
     $default  reduce using rule 41 (stmt_list)
 
-    body       go to state 143
-    stmt_list  go to state 103
+    body       go to state 142
+    stmt_list  go to state 85
 
 
-State 130
+State 128
 
     8 body_main: INT MAIN LB RB LP $@3 body $@4 RP .
 
     $default  reduce using rule 8 (body_main)
 
 
-State 131
+State 129
 
-   59 stmt: SWITCH LB . ID $@17 RB LP $@18 case_stmt default RP
-   62     | SWITCH LB . ID dims2 $@19 RB LP $@20 case_stmt default RP
+   61 stmt: SWITCH LB . ID $@19 RB LP $@20 case_stmt default RP
+   64     | SWITCH LB . ID dims2 $@21 RB LP $@22 case_stmt default RP
 
-    ID  shift, and go to state 144
+    ID  shift, and go to state 143
 
 
-State 132
+State 130
 
    52 stmt: IF LB . expr RB LP $@13 stmt_list RP $@14 else_stmt
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
+    ID         shift, and go to state 71
+
+    expr        go to state 144
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 131
+
+   58 stmt: FOR LB . expr SEMICOL expr SEMICOL expr RB LP $@18 stmt_list RP
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
 
     expr        go to state 145
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 132
+
+   56 stmt: WHILE LB . $@15 expr RB $@16 LP $@17 stmt_list RP
+
+    $default  reduce using rule 53 ($@15)
+
+    $@15  go to state 146
 
 
 State 133
-
-   54 stmt: FOR LB . expr SEMICOL expr SEMICOL expr RB LP $@15 stmt_list RP
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
-
-    expr        go to state 146
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
-
-
-State 134
-
-   56 stmt: WHILE LB . expr RB LP $@16 stmt_list RP
-
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
-
-    expr        go to state 147
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
-
-
-State 135
 
    44 stmt: LP $@11 . stmt_list $@12 RP
 
     $default  reduce using rule 41 (stmt_list)
 
-    stmt_list  go to state 148
+    stmt_list  go to state 147
 
 
-State 136
+State 134
 
-   71 return_stmt: RETURN expr .
+   73 return_stmt: RETURN expr .
 
-    $default  reduce using rule 71 (return_stmt)
+    $default  reduce using rule 73 (return_stmt)
 
 
-State 137
+State 135
 
    48 stmt: BREAK SEMICOL .
 
     $default  reduce using rule 48 (stmt)
 
 
-State 138
+State 136
 
    47 stmt: CONTINUE SEMICOL .
 
     $default  reduce using rule 47 (stmt)
 
 
-State 139
+State 137
 
    29 varl: ID .
-   30     | ID . EQUALS expr
+   30     | ID . EQUALS arith_expr
    33     | ID . dims
 
     EQUALS  shift, and go to state 22
@@ -1762,524 +1751,558 @@ State 139
     dims  go to state 25
 
 
-State 140
+State 138
 
    49 stmt: return_stmt SEMICOL .
 
     $default  reduce using rule 49 (stmt)
 
 
-State 141
+State 139
 
    46 stmt: expr SEMICOL .
 
     $default  reduce using rule 46 (stmt)
 
 
-State 142
+State 140
 
    20 func_def: VOID ID LB $@8 decl_plist RB LP $@9 body . $@10 RP
 
     $default  reduce using rule 19 ($@10)
 
-    $@10  go to state 149
+    $@10  go to state 148
 
 
-State 143
+State 141
+
+   77 expr: ID dims2 EQUALS arith_expr .
+   82 arith_expr: arith_expr . op1 expr1
+
+    ADD  shift, and go to state 53
+    SUB  shift, and go to state 54
+
+    $default  reduce using rule 77 (expr)
+
+    op1  go to state 55
+
+
+State 142
 
    16 func_def: type ID LB $@5 decl_plist RB LP $@6 body . $@7 RP
 
     $default  reduce using rule 15 ($@7)
 
-    $@7  go to state 150
+    $@7  go to state 149
+
+
+State 143
+
+   61 stmt: SWITCH LB ID . $@19 RB LP $@20 case_stmt default RP
+   64     | SWITCH LB ID . dims2 $@21 RB LP $@22 case_stmt default RP
+
+    LS  shift, and go to state 50
+
+    $default  reduce using rule 59 ($@19)
+
+    dims2  go to state 150
+    $@19   go to state 151
 
 
 State 144
 
-   59 stmt: SWITCH LB ID . $@17 RB LP $@18 case_stmt default RP
-   62     | SWITCH LB ID . dims2 $@19 RB LP $@20 case_stmt default RP
+   52 stmt: IF LB expr . RB LP $@13 stmt_list RP $@14 else_stmt
 
-    LS  shift, and go to state 55
-
-    $default  reduce using rule 57 ($@17)
-
-    dims2  go to state 151
-    $@17   go to state 152
+    RB  shift, and go to state 152
 
 
 State 145
 
-   52 stmt: IF LB expr . RB LP $@13 stmt_list RP $@14 else_stmt
+   58 stmt: FOR LB expr . SEMICOL expr SEMICOL expr RB LP $@18 stmt_list RP
 
-    RB  shift, and go to state 153
+    SEMICOL  shift, and go to state 153
 
 
 State 146
 
-   54 stmt: FOR LB expr . SEMICOL expr SEMICOL expr RB LP $@15 stmt_list RP
+   56 stmt: WHILE LB $@15 . expr RB $@16 LP $@17 stmt_list RP
 
-    SEMICOL  shift, and go to state 154
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
+
+    expr        go to state 154
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
 State 147
 
-   56 stmt: WHILE LB expr . RB LP $@16 stmt_list RP
+   40 stmt_list: stmt_list . stmt
+   44 stmt: LP $@11 stmt_list . $@12 RP
 
-    RB  shift, and go to state 155
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
+    FLOAT      shift, and go to state 9
+    LP         shift, and go to state 109
+    LB         shift, and go to state 30
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
+
+    $default  reduce using rule 43 ($@12)
+
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    $@12         go to state 155
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
 
 
 State 148
 
-   40 stmt_list: stmt_list . stmt
-   44 stmt: LP $@11 stmt_list . $@12 RP
+   20 func_def: VOID ID LB $@8 decl_plist RB LP $@9 body $@10 . RP
 
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
-    FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
-    LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
-
-    $default  reduce using rule 43 ($@12)
-
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    $@12         go to state 156
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
+    RP  shift, and go to state 156
 
 
 State 149
 
-   20 func_def: VOID ID LB $@8 decl_plist RB LP $@9 body $@10 . RP
+   16 func_def: type ID LB $@5 decl_plist RB LP $@6 body $@7 . RP
 
     RP  shift, and go to state 157
 
 
 State 150
 
-   16 func_def: type ID LB $@5 decl_plist RB LP $@6 body $@7 . RP
+   38 dims2: dims2 . LS arith_expr RS
+   64 stmt: SWITCH LB ID dims2 . $@21 RB LP $@22 case_stmt default RP
 
-    RP  shift, and go to state 158
+    LS  shift, and go to state 78
+
+    $default  reduce using rule 62 ($@21)
+
+    $@21  go to state 158
 
 
 State 151
 
-   38 dims2: dims2 . LS term RS
-   62 stmt: SWITCH LB ID dims2 . $@19 RB LP $@20 case_stmt default RP
+   61 stmt: SWITCH LB ID $@19 . RB LP $@20 case_stmt default RP
 
-    LS  shift, and go to state 91
-
-    $default  reduce using rule 60 ($@19)
-
-    $@19  go to state 159
+    RB  shift, and go to state 159
 
 
 State 152
 
-   59 stmt: SWITCH LB ID $@17 . RB LP $@18 case_stmt default RP
+   52 stmt: IF LB expr RB . LP $@13 stmt_list RP $@14 else_stmt
 
-    RB  shift, and go to state 160
+    LP  shift, and go to state 160
 
 
 State 153
 
-   52 stmt: IF LB expr RB . LP $@13 stmt_list RP $@14 else_stmt
-
-    LP  shift, and go to state 161
-
-
-State 154
-
-   54 stmt: FOR LB expr SEMICOL . expr SEMICOL expr RB LP $@15 stmt_list RP
+   58 stmt: FOR LB expr SEMICOL . expr SEMICOL expr RB LP $@18 stmt_list RP
 
     LB         shift, and go to state 30
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
+    ID         shift, and go to state 71
 
-    expr        go to state 162
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    expr        go to state 161
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
+
+
+State 154
+
+   56 stmt: WHILE LB $@15 expr . RB $@16 LP $@17 stmt_list RP
+
+    RB  shift, and go to state 162
 
 
 State 155
 
-   56 stmt: WHILE LB expr RB . LP $@16 stmt_list RP
+   44 stmt: LP $@11 stmt_list $@12 . RP
 
-    LP  shift, and go to state 163
+    RP  shift, and go to state 163
 
 
 State 156
-
-   44 stmt: LP $@11 stmt_list $@12 . RP
-
-    RP  shift, and go to state 164
-
-
-State 157
 
    20 func_def: VOID ID LB $@8 decl_plist RB LP $@9 body $@10 RP .
 
     $default  reduce using rule 20 (func_def)
 
 
-State 158
+State 157
 
    16 func_def: type ID LB $@5 decl_plist RB LP $@6 body $@7 RP .
 
     $default  reduce using rule 16 (func_def)
 
 
+State 158
+
+   64 stmt: SWITCH LB ID dims2 $@21 . RB LP $@22 case_stmt default RP
+
+    RB  shift, and go to state 164
+
+
 State 159
 
-   62 stmt: SWITCH LB ID dims2 $@19 . RB LP $@20 case_stmt default RP
+   61 stmt: SWITCH LB ID $@19 RB . LP $@20 case_stmt default RP
 
-    RB  shift, and go to state 165
+    LP  shift, and go to state 165
 
 
 State 160
-
-   59 stmt: SWITCH LB ID $@17 RB . LP $@18 case_stmt default RP
-
-    LP  shift, and go to state 166
-
-
-State 161
 
    52 stmt: IF LB expr RB LP . $@13 stmt_list RP $@14 else_stmt
 
     $default  reduce using rule 50 ($@13)
 
-    $@13  go to state 167
+    $@13  go to state 166
+
+
+State 161
+
+   58 stmt: FOR LB expr SEMICOL expr . SEMICOL expr RB LP $@18 stmt_list RP
+
+    SEMICOL  shift, and go to state 167
 
 
 State 162
 
-   54 stmt: FOR LB expr SEMICOL expr . SEMICOL expr RB LP $@15 stmt_list RP
+   56 stmt: WHILE LB $@15 expr RB . $@16 LP $@17 stmt_list RP
 
-    SEMICOL  shift, and go to state 168
+    $default  reduce using rule 54 ($@16)
+
+    $@16  go to state 168
 
 
 State 163
-
-   56 stmt: WHILE LB expr RB LP . $@16 stmt_list RP
-
-    $default  reduce using rule 55 ($@16)
-
-    $@16  go to state 169
-
-
-State 164
 
    44 stmt: LP $@11 stmt_list $@12 RP .
 
     $default  reduce using rule 44 (stmt)
 
 
+State 164
+
+   64 stmt: SWITCH LB ID dims2 $@21 RB . LP $@22 case_stmt default RP
+
+    LP  shift, and go to state 169
+
+
 State 165
 
-   62 stmt: SWITCH LB ID dims2 $@19 RB . LP $@20 case_stmt default RP
+   61 stmt: SWITCH LB ID $@19 RB LP . $@20 case_stmt default RP
 
-    LP  shift, and go to state 170
+    $default  reduce using rule 60 ($@20)
+
+    $@20  go to state 170
 
 
 State 166
-
-   59 stmt: SWITCH LB ID $@17 RB LP . $@18 case_stmt default RP
-
-    $default  reduce using rule 58 ($@18)
-
-    $@18  go to state 171
-
-
-State 167
 
    52 stmt: IF LB expr RB LP $@13 . stmt_list RP $@14 else_stmt
 
     $default  reduce using rule 41 (stmt_list)
 
-    stmt_list  go to state 172
+    stmt_list  go to state 171
+
+
+State 167
+
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL . expr RB LP $@18 stmt_list RP
+
+    LB         shift, and go to state 30
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
+
+    expr        go to state 172
+    log_expr    go to state 73
+    rel_expr    go to state 74
+    arith_expr  go to state 75
+    expr1       go to state 35
+    term        go to state 36
+    const       go to state 37
+    func_call   go to state 38
 
 
 State 168
 
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL . expr RB LP $@15 stmt_list RP
+   56 stmt: WHILE LB $@15 expr RB $@16 . LP $@17 stmt_list RP
 
-    LB         shift, and go to state 30
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
-
-    expr        go to state 173
-    log_expr    go to state 35
-    rel_expr    go to state 36
-    arith_expr  go to state 37
-    expr1       go to state 38
-    term        go to state 39
-    const       go to state 40
-    func_call   go to state 41
+    LP  shift, and go to state 173
 
 
 State 169
 
-   56 stmt: WHILE LB expr RB LP $@16 . stmt_list RP
+   64 stmt: SWITCH LB ID dims2 $@21 RB LP . $@22 case_stmt default RP
 
-    $default  reduce using rule 41 (stmt_list)
+    $default  reduce using rule 63 ($@22)
 
-    stmt_list  go to state 174
+    $@22  go to state 174
 
 
 State 170
 
-   62 stmt: SWITCH LB ID dims2 $@19 RB LP . $@20 case_stmt default RP
+   61 stmt: SWITCH LB ID $@19 RB LP $@20 . case_stmt default RP
 
-    $default  reduce using rule 61 ($@20)
+    $default  reduce using rule 69 (case_stmt)
 
-    $@20  go to state 175
+    case_stmt  go to state 175
 
 
 State 171
 
-   59 stmt: SWITCH LB ID $@17 RB LP $@18 . case_stmt default RP
+   40 stmt_list: stmt_list . stmt
+   52 stmt: IF LB expr RB LP $@13 stmt_list . RP $@14 else_stmt
 
-    $default  reduce using rule 67 (case_stmt)
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
+    FLOAT      shift, and go to state 9
+    LP         shift, and go to state 109
+    RP         shift, and go to state 176
+    LB         shift, and go to state 30
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
 
-    case_stmt  go to state 176
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
 
 
 State 172
 
-   40 stmt_list: stmt_list . stmt
-   52 stmt: IF LB expr RB LP $@13 stmt_list . RP $@14 else_stmt
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL expr . RB LP $@18 stmt_list RP
 
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
-    FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
-    RP         shift, and go to state 177
-    LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
-
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
+    RB  shift, and go to state 177
 
 
 State 173
 
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL expr . RB LP $@15 stmt_list RP
+   56 stmt: WHILE LB $@15 expr RB $@16 LP . $@17 stmt_list RP
 
-    RB  shift, and go to state 178
+    $default  reduce using rule 55 ($@17)
+
+    $@17  go to state 178
 
 
 State 174
 
-   40 stmt_list: stmt_list . stmt
-   56 stmt: WHILE LB expr RB LP $@16 stmt_list . RP
+   64 stmt: SWITCH LB ID dims2 $@21 RB LP $@22 . case_stmt default RP
 
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
-    FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
-    RP         shift, and go to state 179
-    LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
+    $default  reduce using rule 69 (case_stmt)
 
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
+    case_stmt  go to state 179
 
 
 State 175
 
-   62 stmt: SWITCH LB ID dims2 $@19 RB LP $@20 . case_stmt default RP
+   61 stmt: SWITCH LB ID $@19 RB LP $@20 case_stmt . default RP
+   68 case_stmt: case_stmt . CASE INT_VALUE COLON stmt_list
 
-    $default  reduce using rule 67 (case_stmt)
+    DEFAULT  shift, and go to state 180
+    CASE     shift, and go to state 181
 
-    case_stmt  go to state 180
+    $default  reduce using rule 71 (default)
+
+    default  go to state 182
 
 
 State 176
-
-   59 stmt: SWITCH LB ID $@17 RB LP $@18 case_stmt . default RP
-   66 case_stmt: case_stmt . CASE INT_VALUE COLON stmt_list
-
-    DEFAULT  shift, and go to state 181
-    CASE     shift, and go to state 182
-
-    $default  reduce using rule 69 (default)
-
-    default  go to state 183
-
-
-State 177
 
    52 stmt: IF LB expr RB LP $@13 stmt_list RP . $@14 else_stmt
 
     $default  reduce using rule 51 ($@14)
 
-    $@14  go to state 184
+    $@14  go to state 183
+
+
+State 177
+
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB . LP $@18 stmt_list RP
+
+    LP  shift, and go to state 184
 
 
 State 178
 
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB . LP $@15 stmt_list RP
+   56 stmt: WHILE LB $@15 expr RB $@16 LP $@17 . stmt_list RP
 
-    LP  shift, and go to state 185
+    $default  reduce using rule 41 (stmt_list)
+
+    stmt_list  go to state 185
 
 
 State 179
 
-   56 stmt: WHILE LB expr RB LP $@16 stmt_list RP .
+   64 stmt: SWITCH LB ID dims2 $@21 RB LP $@22 case_stmt . default RP
+   68 case_stmt: case_stmt . CASE INT_VALUE COLON stmt_list
 
-    $default  reduce using rule 56 (stmt)
+    DEFAULT  shift, and go to state 180
+    CASE     shift, and go to state 181
 
-
-State 180
-
-   62 stmt: SWITCH LB ID dims2 $@19 RB LP $@20 case_stmt . default RP
-   66 case_stmt: case_stmt . CASE INT_VALUE COLON stmt_list
-
-    DEFAULT  shift, and go to state 181
-    CASE     shift, and go to state 182
-
-    $default  reduce using rule 69 (default)
+    $default  reduce using rule 71 (default)
 
     default  go to state 186
 
 
-State 181
+State 180
 
-   68 default: DEFAULT . COLON stmt_list
+   70 default: DEFAULT . COLON stmt_list
 
     COLON  shift, and go to state 187
 
 
-State 182
+State 181
 
-   66 case_stmt: case_stmt CASE . INT_VALUE COLON stmt_list
+   68 case_stmt: case_stmt CASE . INT_VALUE COLON stmt_list
 
     INT_VALUE  shift, and go to state 188
 
 
-State 183
+State 182
 
-   59 stmt: SWITCH LB ID $@17 RB LP $@18 case_stmt default . RP
+   61 stmt: SWITCH LB ID $@19 RB LP $@20 case_stmt default . RP
 
     RP  shift, and go to state 189
 
 
-State 184
+State 183
 
    52 stmt: IF LB expr RB LP $@13 stmt_list RP $@14 . else_stmt
 
     ELSE  shift, and go to state 190
 
-    $default  reduce using rule 65 (else_stmt)
+    $default  reduce using rule 67 (else_stmt)
 
     else_stmt  go to state 191
 
 
+State 184
+
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP . $@18 stmt_list RP
+
+    $default  reduce using rule 57 ($@18)
+
+    $@18  go to state 192
+
+
 State 185
 
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP . $@15 stmt_list RP
+   40 stmt_list: stmt_list . stmt
+   56 stmt: WHILE LB $@15 expr RB $@16 LP $@17 stmt_list . RP
 
-    $default  reduce using rule 53 ($@15)
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
+    FLOAT      shift, and go to state 9
+    LP         shift, and go to state 109
+    RP         shift, and go to state 193
+    LB         shift, and go to state 30
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
 
-    $@15  go to state 192
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
 
 
 State 186
 
-   62 stmt: SWITCH LB ID dims2 $@19 RB LP $@20 case_stmt default . RP
+   64 stmt: SWITCH LB ID dims2 $@21 RB LP $@22 case_stmt default . RP
 
-    RP  shift, and go to state 193
+    RP  shift, and go to state 194
 
 
 State 187
 
-   68 default: DEFAULT COLON . stmt_list
+   70 default: DEFAULT COLON . stmt_list
 
     $default  reduce using rule 41 (stmt_list)
 
-    stmt_list  go to state 194
+    stmt_list  go to state 195
 
 
 State 188
 
-   66 case_stmt: case_stmt CASE INT_VALUE . COLON stmt_list
+   68 case_stmt: case_stmt CASE INT_VALUE . COLON stmt_list
 
-    COLON  shift, and go to state 195
+    COLON  shift, and go to state 196
 
 
 State 189
 
-   59 stmt: SWITCH LB ID $@17 RB LP $@18 case_stmt default RP .
+   61 stmt: SWITCH LB ID $@19 RB LP $@20 case_stmt default RP .
 
-    $default  reduce using rule 59 (stmt)
+    $default  reduce using rule 61 (stmt)
 
 
 State 190
 
-   64 else_stmt: ELSE . LP $@21 stmt_list RP
+   66 else_stmt: ELSE . LP $@23 stmt_list RP
 
-    LP  shift, and go to state 196
+    LP  shift, and go to state 197
 
 
 State 191
@@ -2291,198 +2314,205 @@ State 191
 
 State 192
 
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@15 . stmt_list RP
-
-    $default  reduce using rule 41 (stmt_list)
-
-    stmt_list  go to state 197
-
-
-State 193
-
-   62 stmt: SWITCH LB ID dims2 $@19 RB LP $@20 case_stmt default RP .
-
-    $default  reduce using rule 62 (stmt)
-
-
-State 194
-
-   40 stmt_list: stmt_list . stmt
-   68 default: DEFAULT COLON stmt_list .
-
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
-    FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
-    LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
-
-    $default  reduce using rule 68 (default)
-
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
-
-
-State 195
-
-   66 case_stmt: case_stmt CASE INT_VALUE COLON . stmt_list
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@18 . stmt_list RP
 
     $default  reduce using rule 41 (stmt_list)
 
     stmt_list  go to state 198
 
 
+State 193
+
+   56 stmt: WHILE LB $@15 expr RB $@16 LP $@17 stmt_list RP .
+
+    $default  reduce using rule 56 (stmt)
+
+
+State 194
+
+   64 stmt: SWITCH LB ID dims2 $@21 RB LP $@22 case_stmt default RP .
+
+    $default  reduce using rule 64 (stmt)
+
+
+State 195
+
+   40 stmt_list: stmt_list . stmt
+   70 default: DEFAULT COLON stmt_list .
+
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
+    FLOAT      shift, and go to state 9
+    LP         shift, and go to state 109
+    LB         shift, and go to state 30
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
+
+    $default  reduce using rule 70 (default)
+
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
+
+
 State 196
 
-   64 else_stmt: ELSE LP . $@21 stmt_list RP
+   68 case_stmt: case_stmt CASE INT_VALUE COLON . stmt_list
 
-    $default  reduce using rule 63 ($@21)
+    $default  reduce using rule 41 (stmt_list)
 
-    $@21  go to state 199
+    stmt_list  go to state 199
 
 
 State 197
 
-   40 stmt_list: stmt_list . stmt
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@15 stmt_list . RP
+   66 else_stmt: ELSE LP . $@23 stmt_list RP
 
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
-    FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
-    RP         shift, and go to state 200
-    LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
+    $default  reduce using rule 65 ($@23)
 
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
+    $@23  go to state 200
 
 
 State 198
 
    40 stmt_list: stmt_list . stmt
-   66 case_stmt: case_stmt CASE INT_VALUE COLON stmt_list .
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@18 stmt_list . RP
 
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
     FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
+    LP         shift, and go to state 109
+    RP         shift, and go to state 201
     LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
     INT_VALUE  shift, and go to state 31
     FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
+    ID         shift, and go to state 71
 
-    $default  reduce using rule 66 (case_stmt)
-
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
 
 
 State 199
 
-   64 else_stmt: ELSE LP $@21 . stmt_list RP
+   40 stmt_list: stmt_list . stmt
+   68 case_stmt: case_stmt CASE INT_VALUE COLON stmt_list .
 
-    $default  reduce using rule 41 (stmt_list)
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
+    FLOAT      shift, and go to state 9
+    LP         shift, and go to state 109
+    LB         shift, and go to state 30
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
 
-    stmt_list  go to state 201
+    $default  reduce using rule 68 (case_stmt)
+
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
 
 
 State 200
 
-   54 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@15 stmt_list RP .
+   66 else_stmt: ELSE LP $@23 . stmt_list RP
 
-    $default  reduce using rule 54 (stmt)
+    $default  reduce using rule 41 (stmt_list)
+
+    stmt_list  go to state 202
 
 
 State 201
 
-   40 stmt_list: stmt_list . stmt
-   64 else_stmt: ELSE LP $@21 stmt_list . RP
+   58 stmt: FOR LB expr SEMICOL expr SEMICOL expr RB LP $@18 stmt_list RP .
 
-    SWITCH     shift, and go to state 113
-    IF         shift, and go to state 114
-    FOR        shift, and go to state 115
-    WHILE      shift, and go to state 116
-    INT        shift, and go to state 47
-    FLOAT      shift, and go to state 9
-    LP         shift, and go to state 117
-    RP         shift, and go to state 202
-    LB         shift, and go to state 30
-    RETURN     shift, and go to state 118
-    BREAK      shift, and go to state 119
-    CONTINUE   shift, and go to state 120
-    INT_VALUE  shift, and go to state 31
-    FLOAT_VAL  shift, and go to state 32
-    ID         shift, and go to state 33
-
-    var_dclr     go to state 121
-    type         go to state 122
-    stmt         go to state 123
-    return_stmt  go to state 124
-    expr         go to state 125
-    log_expr     go to state 35
-    rel_expr     go to state 36
-    arith_expr   go to state 37
-    expr1        go to state 38
-    term         go to state 39
-    const        go to state 40
-    func_call    go to state 41
+    $default  reduce using rule 58 (stmt)
 
 
 State 202
 
-   64 else_stmt: ELSE LP $@21 stmt_list RP .
+   40 stmt_list: stmt_list . stmt
+   66 else_stmt: ELSE LP $@23 stmt_list . RP
 
-    $default  reduce using rule 64 (else_stmt)
+    SWITCH     shift, and go to state 105
+    IF         shift, and go to state 106
+    FOR        shift, and go to state 107
+    WHILE      shift, and go to state 108
+    INT        shift, and go to state 44
+    FLOAT      shift, and go to state 9
+    LP         shift, and go to state 109
+    RP         shift, and go to state 203
+    LB         shift, and go to state 30
+    RETURN     shift, and go to state 110
+    BREAK      shift, and go to state 111
+    CONTINUE   shift, and go to state 112
+    INT_VALUE  shift, and go to state 31
+    FLOAT_VAL  shift, and go to state 32
+    ID         shift, and go to state 71
+
+    var_dclr     go to state 113
+    type         go to state 114
+    stmt         go to state 115
+    return_stmt  go to state 116
+    expr         go to state 117
+    log_expr     go to state 73
+    rel_expr     go to state 74
+    arith_expr   go to state 75
+    expr1        go to state 35
+    term         go to state 36
+    const        go to state 37
+    func_call    go to state 38
+
+
+State 203
+
+   66 else_stmt: ELSE LP $@23 stmt_list RP .
+
+    $default  reduce using rule 66 (else_stmt)
