@@ -1,4 +1,0 @@
-			.data
-_var0		.word
-_var1		.word
-_var2		.word
