@@ -58,11 +58,8 @@ REG 	([$][t]([0-9])+)
 END     "end"
 CALL    "call"
 VAR		([_][v][a][r]([0-9])+)
-<<<<<<< HEAD
 PAR_AM  ([_][p][a][r][a][m]([0-9])+)
 RESULT  ([_][r][e][s][u][l][t]([0-9])+)
-=======
->>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
 INT_VALUE 			([0-9]+)
 FLOAT_VAL			([0-9]+\.[0-9]+)
 AND     "&&"
@@ -115,10 +112,7 @@ SEMICOL ";"
 {MAIN}          {return MAIN;}
 {RETURN}        {return RETURN;}
 {SEMICOL}       {return SEMICOL;}
-<<<<<<< HEAD
 param           {return PARAM;}
-=======
->>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
 {REG}           {(yylval.datanode) = new DataNode("REG", yytext); 
                 return REG;}
 {INT_VALUE}		{(yylval.datanode) = new DataNode("INT_VALUE", yytext); 
@@ -127,7 +121,6 @@ param           {return PARAM;}
 {FLOAT_VAL}		{(yylval.datanode) = new DataNode("FLOAT_VAL", yytext); 
                 yylval.datanode->data_type = (dt_float); 
                 return FLOAT_VAL;}
-<<<<<<< HEAD
 (LF|LS|LT|LJ|IFF|IFT|SF|S([0-9]+)CT|IFS)([0-9]+) {(yylval.datanode) = new DataNode("LABEL", yytext); 
                 return LABEL;}
 {VAR}			{(yylval.datanode) = new DataNode("VAR", yytext); 
@@ -136,11 +129,6 @@ param           {return PARAM;}
                 return PAR_AM;}
 {RESULT}        {(yylval.datanode) = new DataNode("RESULT", yytext); 
                 return RESULT;}
-=======
-(LF|LS|LT|LJ|IFF|IFT|SF|CT)([0-9]+) {return LABEL;}
-{VAR}			{(yylval.datanode) = new DataNode("VAR", yytext); 
-                return VAR;}
->>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
 {ID}			{(yylval.datanode) = new DataNode("ID", yytext); 
                 return ID;}
 {NEWLINE} 		{}
