@@ -1,8 +1,17 @@
 #include <stdio.h>
 
-int main() {
-    int a, i, j, b[5][8][2];
-    a = b[i+j][j-6][i];
-    b[i][j][j] = i + 6;
+int pant(int a){
+    a = a+7;
+    return a;
+}
 
+int function(int a){
+    a = a + 7;
+    a = pant(a);
+    return a;
+}
+
+int main(){
+    int a = 3;
+    a = function(a);
 }

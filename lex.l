@@ -102,7 +102,7 @@ GE		">="
 LE		"<="
 COMP	"=="
 COLON   ":"
-NEQ 	("!="|"<>")
+NEQ 	("!=")
 COMMA 	","
 MAIN	"main"
 RETURN 	"return"

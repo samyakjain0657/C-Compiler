@@ -1,0 +1,7 @@
+			.data
+_var0:		.word 0
+_var1:		.word 0
+_var2:		.word 0
+_var3:		.word 0
+_result0:		.word 0
+_var4:		.word 0

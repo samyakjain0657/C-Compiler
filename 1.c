@@ -1,32 +1,17 @@
 #include <stdio.h>
+int function(int n) {
+    int i, t1 = 0, t2 = 1, nextTerm;
 
-int test(){
-    int a, b=5;
+    for (i = 1; i <= n && i <= 6; i = i+1)
     {
-        int c;
+        nextTerm = t1 + t2;
+        t1 = t2;
+        t2 = nextTerm;
     }
+    return t2;
 }
-
-int main(){
-    float x;
-    int i;
-    int a;
-    for(i=0;i<30;i=i+1){
-        if(x>3){
-            int a=2;
-            a = 3+7;
-        }
-        if(x<4){
-            a = b+ c;
-        }
-        else{
-            int d = 9;
-        }
-    }
-    switch(x){
-        case 1:
-            break;
-        default:
-            break;
-    }
+int main()
+{
+    int x = function(7);
+    return 0;
 }

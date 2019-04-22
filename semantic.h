@@ -1,8 +1,10 @@
 // TODO
 // array float c
 // function return type
-// logical expression eval
-// relational expresssion eval
+// Multiple syntax error
+// int float conversion
+// not op
+// negative values
 
 #include <bits/stdc++.h>
 using namespace std;
@@ -19,6 +21,7 @@ enum DataType{
 };
 
 ofstream file;
+ofstream symfile;
 
 extern int yylineno;
 // Nodes of the AST
@@ -127,6 +130,7 @@ int if_counter = 0;
 int loop_counter = 0;
 int switch_counter = 0;
 int case_counter = 0;
+int cond_counter = 0;
 string curr_temp;
 int scope;
 
@@ -135,8 +139,8 @@ vector < pair<string, DataType > > param_list;
 vector <int> dimlist;
 vector <string> dimlist_call;
 vector <var> symbol_list;
-vector <string> temp_regs({"_t0","_t1","_t2","_t3","_t4","_t5","_t6","_t7","_t8","_t9"});
-stack <int> if_stack, loop_stack, last_used, switch_stack;
+vector <string> temp_regs({"$t0","$t1","$t2","$t3","$t4","$t5","$t6","$t7","$t8","$t9"});
+stack <int> if_stack, loop_stack, last_used, switch_stack, cond_stack;
 
 func_table_entry* active_func_ptr=NULL;
 func_table_entry* call_name_ptr = NULL;
@@ -517,7 +521,7 @@ string get_temp_name(){
 }
 
 void release_temp_name(string s){
-	if(s[0] !='_' || s == "")
+	if(s[0] !='$' || s == "")
 		return;
 	// cout << "released : " << s << endl;
 	temp_regs.push_back(s);
@@ -534,5 +538,20 @@ vector <int> get_dimlist(string name){
 	}
 	else{
 		return variable->dims;
+	}
+}
+
+void print_symbol_list() {
+	for (auto it: symbol_list) {
+		if (it.type == "simple") {
+			symfile << it.code_name << ":\t\t.word 0\n";
+		}
+		else {
+			int n = 1;
+			for (auto it2 : it.dims) {
+				n = n*it2;
+			}
+			symfile << it.code_name << ":\t\t.space\t" << n << endl;
+		}
 	}
 }

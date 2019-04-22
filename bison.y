@@ -19,7 +19,7 @@ int yyerror(char *s);
 }
 
 %token<datanode> DEFAULT CASE COLON SWITCH SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID
-%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 
+%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 log_expr_prime and_expr and_expr_prime factor
 
 %start start
     
@@ -33,6 +33,14 @@ start:
     {scope=0;} 
     declarations
     body_main
+    {
+        symfile.open("symtab.txt");
+        symfile << "\t\t\t.data\n" ;
+        print_symbol_list();
+        symfile.close();
+    }
+    
+    
 ;
 
 libraries: 
@@ -153,7 +161,7 @@ varl:
         bool chk = check_type($1, $3);
         if (chk) {
             enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
-            file << get_var_code_name($1->value) << " = " << $3->code_name << endl;
+            file << get_var_code_name($1->value) << " = " << $3->code_name << ";" <<  endl;
             release_temp_name($3->code_name);
         }
     }
@@ -161,7 +169,7 @@ varl:
         bool chk = check_type($3, $5);
         if (chk) {
             enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);
-            file << get_var_code_name($3->value) << " = " << $5->code_name << endl;
+            file << get_var_code_name($3->value) << " = " << $5->code_name << ";" <<  endl;
             release_temp_name($5->code_name);
         }
     }
@@ -230,12 +238,14 @@ stmt:
                 file << "goto LF" << loop_stack.top() << endl;
         }
     |   return_stmt SEMICOL
-    |   IF LB expr RB LP 
+    |   IF LB log_expr RB LP 
         {
             scope++;
-            file << "if " << $3->code_name << " <= 0 goto IFF" << if_counter << endl;
+            file << "if " << $3->code_name << " != 1 goto IFF" << if_counter << endl;
             if_stack.push(if_counter++);
             release_temp_name($3->code_name);
+            // file << "IFS" << if_counter << ":\n";
+            // if_stack.push(if_counter++);
         }
         stmt_list RP 
         {
@@ -248,8 +258,8 @@ stmt:
             last_used.push(1);
             file << "LT" << loop_counter << ":\n";
         }
-        expr RB{
-            file << "if "<<$4->code_name << " <= 0 goto LF" << loop_counter++ << endl;
+        log_expr RB{
+            file << "if "<<$4->code_name << " != 1 goto LF" << loop_counter++ << endl;
             release_temp_name($4->code_name);
         } 
         LP {
@@ -270,10 +280,10 @@ stmt:
             file << "LJ" << loop_counter << ":\n";
             release_temp_name($3->code_name);
         }
-        expr SEMICOL
+        log_expr SEMICOL
         {
-            file << "if " << $6->code_name  << " <= 0 goto LF" << loop_counter << endl;
-            file << "goto LS" << loop_counter << ":" << endl;
+            file << "if " << $6->code_name  << " != 1 goto LF" << loop_counter << endl;
+            file << "goto LS" << loop_counter << endl;
             file << "LT" << loop_counter << ":\n";
             release_temp_name($6->code_name);
         } 
@@ -306,7 +316,7 @@ stmt:
                     cout << "Line No. " << yylineno << " Error: expression must have integral type"<< endl; 
             } 
             curr_temp = get_temp_name();
-            file << curr_temp << " = " << variable->code_name << endl;
+            file << curr_temp << " = " << variable->code_name << ";" <<  endl;
         }
         RB LP { scope++; } 
         case_stmt default RP { 
@@ -341,17 +351,17 @@ stmt:
             for (int i = 1; i < temp_dim_list.size(); i++) {
                 temp_name2 = get_temp_name(); 
                 temp_name6 = get_temp_name();    
-                file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << endl;
-                file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << endl;
+                file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
+                file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
                 release_temp_name(temp_name);
                 release_temp_name(dimlist_call[i]);
                 release_temp_name(temp_name6);
                 temp_name = temp_name2;
             }
-            file << temp_name3 << " = " << temp_name2 << " * 4\n";
-            file << temp_name4 << " = " << "addr(" << get_var_code_name($3->value) << ")" << endl;
-            // file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << $4->code_name << endl;
-            file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << endl;
+            file << temp_name3 << " = " << temp_name2 << " * 4;\n";
+            file << temp_name4 << " = " << "addr(" << get_var_code_name($3->value) << ")" << ";" <<  endl;
+            // file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << $4->code_name << ";" <<  endl;
+            file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
             release_temp_name(temp_name2);
             release_temp_name(temp_name3);
             release_temp_name(temp_name4);
@@ -397,11 +407,11 @@ else_stmt:
 case_stmt:
     case_stmt 
     {
-        file << "CT" << case_counter++ << ": " << endl;
+        file << "S" << switch_stack.top() << "CT" << case_counter++ << ": " << endl;
     }
     CASE INT_VALUE 
     {
-        file << "if " << curr_temp << " != " << $4->value << " goto CT" << case_counter << endl; 
+        file << "if " << curr_temp << " != " << $4->value << " goto "<< "S" << switch_stack.top() << "CT" << case_counter << endl; 
     }
     COLON stmt_list
     |
@@ -410,12 +420,12 @@ case_stmt:
 default:
     DEFAULT 
     {
-        file << "CT" << case_counter++ << ": " << endl;
+        file << "S" << switch_stack.top() << "CT" << case_counter++ << ": " << endl;
     }
     COLON stmt_list
     |
     {
-        file << "CT" << case_counter++ << ": " << endl;
+        file << "S" << switch_stack.top() << "CT" << case_counter++ << ": " << endl;
     }
 ;
 
@@ -424,25 +434,25 @@ return_stmt:
         DataNode *res = new DataNode();
         res->data_type = dt_none;
         $$ = res;
-        file << "return\n";
+        file << "return;\n";
     }
     | RETURN expr {
         $$ = check_func_return_type($2);
-        file << "return " << $2->code_name << endl;
+        file << "return " << $2->code_name << ";" << endl;
     }
 ;
 
 expr:
     arith_expr {$$ = $1;}
-    | log_expr {$$ = $1;}
+    | log_expr
     | ID EQUALS arith_expr 
     {
         $$ = checkType($1,$3);
         
-        file << get_var_code_name($1->value) << " = " << $3->code_name << endl;
+        file << get_var_code_name($1->value) << " = " << $3->code_name << ";" << endl;
         release_temp_name($3->code_name);
         string temp_name = get_temp_name();
-        file << temp_name << " = " << get_var_code_name($1->value) << endl;
+        // file << temp_name << " = " << get_var_code_name($1->value) <<  ";" << endl;
         $$->code_name = temp_name;
     }
     | ID dims2 EQUALS arith_expr 
@@ -459,17 +469,17 @@ expr:
         for (int i = 1; i < temp_dim_list.size(); i++) {
             temp_name2 = get_temp_name(); 
             temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << endl;
+            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" << endl;
+            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" << endl;
             release_temp_name(temp_name);
             release_temp_name(dimlist_call[i]);
             release_temp_name(temp_name6);
             temp_name = temp_name2;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << endl;
-        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << $4->code_name << endl;
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << endl;
+        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
+        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ");" << endl;
+        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << $4->code_name << ";" <<  endl;
+        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"];" << endl;
         release_temp_name(temp_name2);
         release_temp_name(temp_name3);
         release_temp_name(temp_name4);
@@ -480,9 +490,141 @@ expr:
 ;
 
 log_expr:
-    log_expr OR rel_expr {$$ = $3;}
-    | log_expr AND rel_expr {$$ = $3;}
-    | rel_expr {$$ = $1;}
+    and_expr
+    {
+        cond_stack.push(cond_counter++);
+        file << "if " << $1->code_name << " == 1 goto IFS" << cond_stack.top() << endl;
+        
+        // release_temp_name($1->code_name);
+    } 
+    log_expr_prime 
+    {
+        file << "IFS" << cond_stack.top() << ":\n";
+        cond_stack.pop();
+        
+        DataNode *res = new DataNode();
+        res->data_type = dt_bool;
+        $$ = res;
+
+        if ($3->code_name != "0") {
+            string temp1 = $1->code_name;
+            string temp2 = $3->code_name;
+            
+            string temp_name = get_temp_name();
+            file << temp_name  << " = "  <<  temp1 << " " << "||" << " " << temp2 << ";" <<  endl;
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+            $$->code_name = temp_name;
+        }
+        else {
+            $$->code_name = $1->code_name;
+        }
+    }
+;
+
+log_expr_prime:
+    OR and_expr
+    {
+        file << "if " << $2->code_name << " == 1 goto IFS" << cond_stack.top() << endl;
+    } 
+    log_expr_prime 
+    {
+        DataNode *res = new DataNode();
+        res->data_type = dt_bool;
+        $$ = res;
+
+        if ($4->code_name != "0") {
+            string temp1 = $2->code_name;
+            string temp2 = $4->code_name;
+            
+            string temp_name = get_temp_name();
+            file << temp_name  << " = "  <<  temp1 << " " << "||" << " " << temp2 << ";" <<  endl;
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+            $$->code_name = temp_name;
+        }
+        else {
+            $$->code_name = $2->code_name;
+        }
+    }
+    |
+    {
+        DataNode *res = new DataNode();
+        res->data_type = dt_bool;
+        $$ = res;
+        $$->code_name = "0";
+
+    }
+;
+
+and_expr:
+    factor
+    {
+        cond_stack.push(cond_counter++);
+        file << "if " << $1->code_name << " != 1 goto IFS" << cond_stack.top() << endl;
+    }
+    and_expr_prime 
+    {
+        file << "IFS" << cond_stack.top() << ":\n";
+        cond_stack.pop();
+
+        DataNode *res = new DataNode();
+        res->data_type = dt_bool;
+        $$ = res;
+
+        if ($3->code_name != "1") {
+            string temp1 = $1->code_name;
+            string temp2 = $3->code_name;
+            
+            string temp_name = get_temp_name();
+            file << temp_name  << " = "  <<  temp1 << " " << "&&" << " " << temp2 << ";" <<  endl;
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+            $$->code_name = temp_name;
+        }
+        else {
+            $$->code_name = $1->code_name;
+        }
+    }
+;
+
+and_expr_prime:
+    AND factor
+    {
+        file << "if " << $2->code_name << " != 1 goto IFS" << cond_stack.top() << endl;
+    } 
+    and_expr_prime 
+    {
+        DataNode *res = new DataNode();
+        res->data_type = dt_bool;
+        $$ = res;
+
+        if ($4->code_name != "1") {
+            string temp1 = $2->code_name;
+            string temp2 = $4->code_name;
+            
+            string temp_name = get_temp_name();
+            file << temp_name  << " = "  <<  temp1 << " " << "&&" << " " << temp2 << ";" <<  endl;
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+            $$->code_name = temp_name;
+        }
+        else {
+            $$->code_name = $2->code_name;
+        }
+    }
+    | 
+    {
+        DataNode *res = new DataNode();
+        res->data_type = dt_bool;
+        $$ = res;
+        $$->code_name = "1";
+    }
+;
+
+factor:
+    rel_expr { $$ = $1;}
+    | LB log_expr RB { $$ = $2;}
 ;
 
 rel_expr: 
@@ -495,12 +637,13 @@ rel_expr:
         string temp2 = $3->code_name;
         
         string temp_name = get_temp_name();
-        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << endl;
+        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
         release_temp_name(temp1);
         release_temp_name(temp2);
         $$->code_name = temp_name;
     }
 ;
+
 
 arith_expr:  
     arith_expr op1 expr1 
@@ -511,7 +654,7 @@ arith_expr:
         $$ = typecaster($1,$3);
 
         string temp_name = get_temp_name();
-        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << endl;
+        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
         release_temp_name(temp1);
         release_temp_name(temp2);
         $$->code_name = temp_name;
@@ -527,7 +670,7 @@ expr1:
 
         $$ = typecaster($1,$3);
         string temp_name = get_temp_name();
-        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << endl;
+        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
         release_temp_name(temp1);
         release_temp_name(temp2);
         $$->code_name = temp_name;
@@ -538,13 +681,19 @@ expr1:
 term:   
     LB arith_expr RB {$$ = $2;}
     |   func_call {$$ = $1;}
-    |   const {$$ = $1;}
+    |   const 
+    {
+        $$ = $1;
+        string temp_name = get_temp_name();
+        file << temp_name << " = " << $1->value << ";" <<  endl;
+        $$->code_name = temp_name;
+    }
     |   ID 
     {
         set_data_type($1); 
         $$ = $1;
         string temp_name = get_temp_name();
-        file << temp_name << " = " << get_var_code_name($1->value) << endl;
+        file << temp_name << " = " << get_var_code_name($1->value) << ";" <<  endl;
         $$->code_name = temp_name;
     }
     |   ID dims2
@@ -567,16 +716,16 @@ term:
         for (int i = 1; i < temp_dim_list.size(); i++) {
             temp_name2 = get_temp_name(); 
             temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << endl;
+            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
+            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
             release_temp_name(temp_name);
             release_temp_name(dimlist_call[i]);
             release_temp_name(temp_name6);
             temp_name = temp_name2;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << endl;
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << endl;
+        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
+        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << ";" <<  endl;
+        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
         release_temp_name(temp_name2);
         release_temp_name(temp_name3);
         release_temp_name(temp_name4);
@@ -616,11 +765,11 @@ func_call:
     {
         DataNode* func = check_func_call(($1)->value);
         for (auto it: param_list) {
-            file << "param " << it.first << "\n";
+            file << "param " << it.first << ";\n";
             release_temp_name(it.first);
         }
         if(func->data_type == dt_int || func->data_type == dt_float ){
-            file << "refparam _result" << res_counter <<"\n"; 
+            file << "param _result" << res_counter <<";\n"; 
             var *variable = new var();
             
             if (func->data_type == dt_int)
@@ -636,7 +785,7 @@ func_call:
             symbol_list.push_back(*variable);
             func->code_name =  variable->code_name;
         }
-        file << "call " << ($1)->value <<"\n";
+        file << "call " << ($1)->value <<";\n";
         param_list.clear();
         $$ = func;
     }
