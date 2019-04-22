@@ -1,10 +1,15 @@
 // TODO
 // array float c
 // function return type
+<<<<<<< HEAD
 // Multiple syntax error
 // int float conversion
 // not op
 // negative values
+=======
+// logical expression eval
+// relational expression eval
+>>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
 
 #include <bits/stdc++.h>
 using namespace std;
@@ -140,7 +145,11 @@ vector <int> dimlist;
 vector <string> dimlist_call;
 vector <var> symbol_list;
 vector <string> temp_regs({"$t0","$t1","$t2","$t3","$t4","$t5","$t6","$t7","$t8","$t9"});
+<<<<<<< HEAD
 stack <int> if_stack, loop_stack, last_used, switch_stack, cond_stack;
+=======
+stack <int> if_stack, loop_stack, last_used, switch_stack;
+>>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
 
 func_table_entry* active_func_ptr=NULL;
 func_table_entry* call_name_ptr = NULL;
@@ -544,14 +553,22 @@ vector <int> get_dimlist(string name){
 void print_symbol_list() {
 	for (auto it: symbol_list) {
 		if (it.type == "simple") {
+<<<<<<< HEAD
 			symfile << it.code_name << ":\t\t.word 0\n";
+=======
+			symfile << it.code_name << "\t\t.word\n";
+>>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
 		}
 		else {
 			int n = 1;
 			for (auto it2 : it.dims) {
 				n = n*it2;
 			}
+<<<<<<< HEAD
 			symfile << it.code_name << ":\t\t.space\t" << n << endl;
+=======
+			symfile << it.code_name << "\t\t.space\t" << n << endl;
+>>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
 		}
 	}
 }

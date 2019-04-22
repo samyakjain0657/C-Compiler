@@ -282,7 +282,11 @@ stmt:
         }
         log_expr SEMICOL
         {
+<<<<<<< HEAD
             file << "if " << $6->code_name  << " != 1 goto LF" << loop_counter << endl;
+=======
+            file << "if " << $6->code_name  << " <= 0 goto LF" << loop_counter << endl;
+>>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
             file << "goto LS" << loop_counter << endl;
             file << "LT" << loop_counter << ":\n";
             release_temp_name($6->code_name);
@@ -452,7 +456,11 @@ expr:
         file << get_var_code_name($1->value) << " = " << $3->code_name << ";" << endl;
         release_temp_name($3->code_name);
         string temp_name = get_temp_name();
+<<<<<<< HEAD
         // file << temp_name << " = " << get_var_code_name($1->value) <<  ";" << endl;
+=======
+        file << temp_name << " = " << get_var_code_name($1->value) <<  ";" << endl;
+>>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
         $$->code_name = temp_name;
     }
     | ID dims2 EQUALS arith_expr 
@@ -769,7 +777,11 @@ func_call:
             release_temp_name(it.first);
         }
         if(func->data_type == dt_int || func->data_type == dt_float ){
+<<<<<<< HEAD
             file << "param _result" << res_counter <<";\n"; 
+=======
+            file << "refparam _result" << res_counter <<";\n"; 
+>>>>>>> 6538ce2e9de3d0101e83a6336b0f4e7ac00038ef
             var *variable = new var();
             
             if (func->data_type == dt_int)
