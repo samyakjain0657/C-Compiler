@@ -1,17 +1,14 @@
 #include <stdio.h>
 
-int pant(int a){
-    a = a+7;
-    return a;
-}
-
-int function(int a){
-    a = a + 7;
-    a = pant(a);
-    return a;
+int factorial(int a, int b){
+    if(a == 0){
+        return b;
+    }
+    b = a*factorial(a-1, b);
+    return b;
 }
 
 int main(){
-    int a = 3;
-    a = function(a);
+    int a = 5, b = 1, fact;
+    fact = factorial(a, b);
 }

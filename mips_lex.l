@@ -69,6 +69,7 @@ MAIN    "main"
 ID      ([A-Za-z_]([A-Za-z0-9_])*)
 RETURN  "return"
 SEMICOL ";"
+
 %%
 
 {EQUALS}		{return EQUALS;}
@@ -133,5 +134,5 @@ param           {return PARAM;}
                 return ID;}
 {NEWLINE} 		{}
 {WHITESPACE}	{}
-
+.					{cerr<< "Line No. <<yylineno << Error:TOKEN CANNOT BE MATCHED "<<endl;}
 %%

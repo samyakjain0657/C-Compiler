@@ -87,6 +87,13 @@ AND 	"&&"
 LP		"{"
 RP		"}"
 LB		"("
+PLUSPLUS "++"
+MINUSMINUS "--"
+PLUSEQU "+="
+MINUSEQU "-="
+DIVEQU  "/="
+MULEQU  "*="
+MODEQU  "%="
 RB		")"
 LS      "["
 RS      "]"
@@ -134,6 +141,13 @@ NEWLINE 			([\n])
 
 {SEMICOL}		{return SEMICOL;}
 {EQUALS}		{return EQUALS;}
+{PLUSPLUS}      {return PLUSPLUS;}
+{MINUSMINUS}    {return MINUSMINUS;}
+{PLUSEQU}       {return PLUSEQU;}
+{MINUSEQU}      {return MINUSEQU;}
+{DIVEQU}        {return DIVEQU;}
+{MULEQU}        {return MULEQU;}
+{MODEQU}        {return MODEQU;}
 {ADD} 			{(yylval.datanode) = initialise("INT", yytext); 
                 return ADD;}
 {SUB} 			{(yylval.datanode) = initialise("INT", yytext); 
@@ -204,6 +218,6 @@ NEWLINE 			([\n])
 {NEWLINE} 		{}
 {WHITESPACE}	{}
 
-.					{cerr<< "TOKEN CANNOT BE MATCHED "<<endl;}
+.					{cerr<< "Line No. <<yylineno << Error:TOKEN CANNOT BE MATCHED "<<endl;}
 
 %%

@@ -85,6 +85,7 @@ struct var{
     string type;
     string name;
 	string code_name;
+	string value;
     bool isParam;
     int level;
     string eletype;
@@ -131,9 +132,12 @@ int loop_counter = 0;
 int switch_counter = 0;
 int case_counter = 0;
 int cond_counter = 0;
+int func_dec_counter = 0;
+string glob_val = "0";
 string curr_temp;
 int scope;
 
+set<string> my_errors;
 vector <string> var_list;
 vector < pair<string, DataType > > param_list;
 vector <int> dimlist;
@@ -305,7 +309,7 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 
 	search_var_level(name, func, level, found, variable1);
 	if(found){
-		cout << "Error " << yylineno << " : Variable " << name << " already declared " << endl; 
+		cout << "Line No. "<< yylineno <<" Error " << " : Variable " << name << " already declared " << endl; 
 		dimlist.clear();
 		return;
 	}
@@ -313,7 +317,7 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 		var* param;
 		search_param(name, func, found, param);
 		if(found){
-			cout << "Error " << yylineno << " : Variable " << name << " already declared as parameter" << endl; 
+			cout << "Line No. "<< yylineno <<" Error " << " : Variable " << name << " already declared as parameter" << endl; 
 			dimlist.clear();
 			return;
 		}
@@ -321,6 +325,7 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 	variable->name = name;
 	variable->level = level;
 	variable->type = type;
+	variable->value = glob_val;
 	variable->code_name = "_var" + to_string(var_counter++);
 	if(type=="array") {
 		// variable->dims = dims;
@@ -337,7 +342,7 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 	else {
 		func->local_var_list.push_back(*variable);
 	}
-
+	glob_val = "0";
 	dimlist.clear();	
 }
 
@@ -544,14 +549,14 @@ vector <int> get_dimlist(string name){
 void print_symbol_list() {
 	for (auto it: symbol_list) {
 		if (it.type == "simple") {
-			symfile << it.code_name << ":\t\t.word 0\n";
+			symfile << it.code_name << ":\t\t.word "<< it.value << "\n";
 		}
 		else {
 			int n = 1;
 			for (auto it2 : it.dims) {
 				n = n*it2;
 			}
-			symfile << it.code_name << ":\t\t.space\t" << n << endl;
+			symfile << it.code_name << ":\t\t.space\t" << n*4 << endl;
 		}
 	}
 }

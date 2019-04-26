@@ -8,7 +8,8 @@
     int yyerror(char *s);
     ofstream file;
     ifstream input("symtab.txt");
-
+    bool flag = 1;
+    stack <int> param_stack;
     int param_count = 0;
 
     enum DataType{
@@ -59,27 +60,33 @@ start:
         }
         file << "           .text" << endl;
     }
-    func FUNC BEG body_main FUNC END {
-        file << "jr $ra"<<endl;
-    }
+    declarations
+    body_main
+;
+
+declarations: 
+    declarations asg SEMICOL
+    | declarations func
+    | declarations error NEWLINE
+    | 
 ;
 
 func:
-    func FUNC BEG ID {
-        file << ($4)->value <<":\n";
+    FUNC BEG ID INT_VALUE{
+        param_stack.push(stoi($4->value));
+        // cout<<param_stack.top()<<endl;
+        file << ($3)->value <<":\n";
     } 
     stmt_list FUNC END {
+        param_stack.pop();
         file << "jr $ra"<<endl;
     }
-    |
 ;
 
-
 body_main:
-    MAIN {
-        file << "main:"<<endl;
-    } 
-    stmt_list 
+    FUNC BEG MAIN {file << "main:"<<endl;} stmt_list FUNC END {
+        file << "jr $ra"<<endl;
+    }
 ;
 
 stmt_list:  
@@ -91,13 +98,22 @@ stmt:
     LABEL COLON {
         file << ($1)->value <<":\n";
     }
+    | error NEWLINE
     | asg SEMICOL
     | CALL ID SEMICOL {
-        file << "addi $sp, $sp, "<<-4*(1+param_count)<<endl;
+        // param_stack.push(param_count);
+        file << "addi $sp, $sp, "<<-4*(param_count)<<endl;
+        for(int i=0;i<10;i++){
+            file << "sw $t"<<i<<", "<<-4*(10-i)<<"($sp)"<<endl;
+        }
+        file << "addi $sp, $sp, "<<-4*(11)<<endl;
         file << "sw $ra, 0($sp)"<<endl;
         file << "jal "<< ($2)->value << endl;
         file << "lw $ra, 0($sp)"<<endl;
-        file << "addi $sp, $sp, "<<4*(param_count+1)<<endl;
+        for(int i=0;i<10;i++){
+            file << "lw $t"<<i<<", "<<4*(i+1)<<"($sp)"<<endl;
+        }
+        file << "addi $sp, $sp, "<<4*(param_count+11)<<endl;
         param_count = 0;
     }
     | IF REG COMP INT_VALUE GOTO LABEL {
@@ -134,44 +150,61 @@ term:
 asg:
     VAR EQUALS REG {file << "sw " << $3->value << " , " + $1->value << endl;}
     | REG EQUALS expr {file << $1->value << ", " + $3->code_name << endl;}
-    | REG LS REG RS EQUALS expr
     | PAR_AM EQUALS REG {
+        int paramcount = param_stack.top();
         int n = ($1)->value.size();
         string s = $1->value.substr(6,n-6);
         // cout<<s<<endl;
         int x = stoi(s);
-        file << "sw "<<$3->value<<", "<<(x+1)*4<<"($sp)"<<endl;
+
+        x = (paramcount)-x+10;
+        file << "sw "<<$3->value<<", "<<(x)*4<<"($sp)"<<endl;
     }
     | REG EQUALS PAR_AM {
+        int paramcount = param_stack.top();
         int n = ($3)->value.size();
         string s = $3->value.substr(6,n-6);
         // cout<<s<<endl;
         int x = stoi(s);
-        file << "lw "<<$1->value<<", "<<(x+1)*4<<"($sp)"<<endl;
+        // cout<<paramcount<<" "<<x<<endl;
+
+        x = (paramcount)-x+10;
+        file << "lw "<<$1->value<<", "<<(x)*4<<"($sp)"<<endl;
     }
     | VAR EQUALS RESULT {
         file << "sw $v0, "<<($1)->value<<endl;
     }
     | REG EQUALS RESULT {
-        file << "sw $v0, "<<($1)->value<<endl;
+        file << "move "<<($1)->value<<", $v0"<<endl;
     }
     | PAR_AM EQUALS RESULT {
+        int paramcount = param_stack.top();
         int n = ($1)->value.size();
         string s = $1->value.substr(6,n-6);
         // cout<<s<<endl;
         int x = stoi(s);
-        file << "sw $v0, "<<(x+1)*4<<"($sp)"<<endl;
+        x = (paramcount)-x+10;
+        file << "sw $v0, "<<(x)*4<<"($sp)"<<endl;
+    }
+    | REG EQUALS ADDR LB VAR RB {
+        file << "la "<<$1->value<<", "<<$5->value<<endl;
+    }
+    | REG LS REG RS EQUALS REG {
+        file << "add "<<$1->value<<", "<<$1->value<<", "<<$3->value<<endl;
+        file << "sw "<<$6->value<<", ("<<$1->value<<")"<<endl;
+    }
+    | REG EQUALS REG LS REG RS {
+        file << "add "<<$3->value<<", "<<$3->value<<", "<<$5->value<<endl;
+        file << "lw "<<$1->value<<", ("<<$3->value<<")"<<endl;
     }
 ;
 
 expr:
     REG op REG {$$ = $1; $$->code_name = $1->value + ", " + $3->value;}
-    | REG LS REG RS
     | VAR { file << "lw "; $$ = $1; $$->code_name = $1->value;}
     | REG { file << "move "; $$ = $1; $$->code_name = $1->value;}
     | INT_VALUE {file << "li "; $$ = $1; $$->code_name = $1->value;}
     | FLOAT_VAL {file << "li "; $$ = $1; $$->code_name = $1->value;}
-    | ADDR LB REG RB
     | REG op INT_VALUE {$$ = $1; $$->code_name = $1->value + ", " + $3->value;}
 ;
 
@@ -194,8 +227,9 @@ op:
 
 int yyerror(char *s)
 {
-  extern char *yytext;
-  printf("Line No. %d ERROR: %s at symbol %s\n",yylineno, s, yytext);
+    flag = 0;
+    extern char *yytext;
+    printf("Line No. %d Error: %s at symbol %s\n",yylineno, s, yytext);
 }
 
 int main(int argc, char* argv[])
@@ -207,7 +241,15 @@ int main(int argc, char* argv[])
     }
     yyin = fp;
 
+    cout << "Compilation starts for " <<  argv[1]<< "\n";
 	do {
 		yyparse();
 	} while(!feof(yyin));
+
+    if (!flag) {
+        cout << "Compilation failed for " <<  argv[1]<< "\n";
+    }
+    else {
+        cout << "Compilation successful for " <<  argv[1]<< "\n";
+    }
 }
