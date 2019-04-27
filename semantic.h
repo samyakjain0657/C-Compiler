@@ -1,8 +1,6 @@
 // TODO
 // array float c
 // function return type
-// Multiple syntax error
-// int float conversion
 // not op
 // negative values
 
@@ -22,6 +20,9 @@ enum DataType{
 
 ofstream file;
 ofstream symfile;
+void release_temp_name(string s);
+string get_temp_name();
+string get_ftemp_name();
 
 extern int yylineno;
 // Nodes of the AST
@@ -31,41 +32,17 @@ public:
 	string value;			// lexeme
 	DataType data_type;		// datatype of the Datanode(if required)
 	string code_name;
+	vector<string> dimlist_call;
+	vector<pair<string, DataType>> param_list;
 	int line_number;		// line number where the Datanode is occuring
-
-	// Children of the DataNodes
-	DataNode *child1;
-	DataNode *child2;
-	DataNode *child3;
-	DataNode *child4;
 
 	DataNode () {}
 
-	DataNode (string t, string v, DataNode *c1, DataNode *c2, DataNode *c3) {
+	DataNode (string t, string v) {
 		type = t;
 		value = v;
 		data_type = dt_none;
-		child3 = c3;
-		child2 = c2;
-		child1 = c1;
-		child4 = NULL;
 		line_number = yylineno;
-	}
-
-	void addChild4(DataNode *c4){
-		child4 = c4;
-	}
-
-	string getValue(){
-		return value;
-	}
-
-	string getType(){
-		return type;
-	}
-
-	DataType getDataType(){
-		return data_type;
 	}
 
 	void setDataType(DataType dt){
@@ -144,6 +121,8 @@ vector <int> dimlist;
 vector <string> dimlist_call;
 vector <var> symbol_list;
 vector <string> temp_regs({"$t0","$t1","$t2","$t3","$t4","$t5","$t6","$t7","$t8","$t9"});
+// vector <string> temp_fregs({"$f0","$f1","$f2","$f3","$f4","$f5","$f6","$f7","$f8","$f9","$f10","$f11","$f12","$f13","$f14","$f15","$f16","$f17","$f18","$f19","$f20","$f21","$f22","$f23","$f24","$f25","$f26","$f27","$f28","$f29","$f30"});
+vector <string> temp_fregs({"$f0","$f1","$f2","$f3","$f4","$f5","$f6","$f7","$f8","$f9"});
 stack <int> if_stack, loop_stack, last_used, switch_stack, cond_stack;
 
 func_table_entry* active_func_ptr=NULL;
@@ -326,7 +305,10 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 	variable->level = level;
 	variable->type = type;
 	variable->value = glob_val;
-	variable->code_name = "_var" + to_string(var_counter++);
+	if (active_type == dt_int)
+		variable->code_name = "_var" + to_string(var_counter++);
+	else
+		variable->code_name = "_fvar" + to_string(var_counter++);
 	if(type=="array") {
 		// variable->dims = dims;
 		variable->dims.resize(dims.size());
@@ -369,9 +351,9 @@ void patch_type(string data_type){
 	var_list.clear();
 }
 
-DataNode* check_func_call(string name){
+DataNode* check_func_call(string name, vector<pair<string, DataType>> &param_list){
 	func_table_entry* func;
-	DataNode* res = new DataNode("FUNC", name, NULL, NULL, NULL);
+	DataNode* res = new DataNode("FUNC", name);
 	bool found;
 	search_func(name,found,func);
 	if(found){
@@ -456,6 +438,26 @@ DataNode* checkType(DataNode *a, DataNode* b) {
 	else if (b->data_type == dt_float && variable->eletype == "float") {
 		return b;
 	}
+	else if (b->data_type == dt_int && variable->eletype == "float") {
+		file << "convert " << b->code_name  << "\n";
+		string temp3 = get_ftemp_name();
+		file << temp3 << " = " << b->code_name << ";" << endl;
+		release_temp_name(b->code_name);
+		DataNode* res = new DataNode;
+		res->data_type = a->data_type;
+		res->code_name = temp3;
+		return res;
+	}
+	else if (b->data_type == dt_float && variable->eletype == "int") {
+		file << "convert " << b->code_name  << "\n";
+		string temp3 = get_temp_name();
+		file << temp3 << " = " << b->code_name << ";" << endl;
+		release_temp_name(b->code_name);
+		DataNode* res = new DataNode;
+		res->data_type = a->data_type;
+		res->code_name = temp3;
+		return res;
+	}
 	else {
 		cout << "Line No. " << yylineno << " Error: Type of variable '"<< variable->name << "' does not match with right hand side." << endl;
 		DataNode* res = new DataNode;
@@ -466,8 +468,17 @@ DataNode* checkType(DataNode *a, DataNode* b) {
 
 bool check_type(DataNode*b, DataNode *a) {
 	if (active_type != a->data_type) {
-		cout << "Line No. " << yylineno << " Error: Type of variable '" << b->value <<"' does not match with right hand side." << endl;
-		return 0;
+		// cout << "Line No. " << yylineno << " Error: Type of variable '" << b->value <<"' does not match with right hand side." << endl;
+		file << "convert " << a->code_name  << "\n";
+		string temp3;
+		if (active_type == dt_int)
+			temp3 = get_temp_name();
+		else
+			temp3 = get_ftemp_name();
+		file << temp3 << " = " << a->code_name  << ";" << endl;
+		release_temp_name(a->code_name);
+		a->code_name = temp3;
+		return 1;
 	}
 	b->data_type = active_type;
 	return 1;
@@ -528,8 +539,21 @@ string get_temp_name(){
 void release_temp_name(string s){
 	if(s[0] !='$' || s == "")
 		return;
-	// cout << "released : " << s << endl;
-	temp_regs.push_back(s);
+
+	if (s[1] == 't')
+		temp_regs.push_back(s);
+	else
+		temp_fregs.push_back(s);
+}
+
+string get_ftemp_name(){
+	if (temp_fregs.size() > 0) {
+		string s = temp_fregs[temp_fregs.size()-1];
+		temp_fregs.pop_back();
+		// cout << "acquired : " << s << endl;
+		return s;
+	}
+	return "";
 }
 
 vector <int> get_dimlist(string name){
@@ -549,7 +573,21 @@ vector <int> get_dimlist(string name){
 void print_symbol_list() {
 	for (auto it: symbol_list) {
 		if (it.type == "simple") {
-			symfile << it.code_name << ":\t\t.word "<< it.value << "\n";
+			if (it.eletype == "int") {
+				if (it.value.find('.') !=std::string::npos) {
+					it.value[it.value.find('.')] = '\0';
+					symfile << it.code_name << ":\t\t.word "<< it.value << "\n";	
+				}
+				else
+					symfile << it.code_name << ":\t\t.word "<< it.value << "\n";
+			}
+			else {
+				if (it.value.find('.') ==std::string::npos)
+					symfile << it.code_name << ":\t\t.float "<< it.value << ".0" << "\n";	
+				else
+					symfile << it.code_name << ":\t\t.float "<< it.value << "\n";	
+			}
+				
 		}
 		else {
 			int n = 1;
@@ -559,4 +597,30 @@ void print_symbol_list() {
 			symfile << it.code_name << ":\t\t.space\t" << n*4 << endl;
 		}
 	}
+}
+
+pair<string,string> return_arr(DataNode *a, DataNode *b) {
+	string temp_name = b->dimlist_call[0];
+	string temp_name6;  
+	string temp_name2 = temp_name;      
+	vector<int> temp_dim_list = get_dimlist(a->value);
+	// for (auto it: b->dimlist_call) {
+	//     cout << it <<  " ";
+	// }cout << endl;
+	for (int i = 1; i < temp_dim_list.size(); i++) {
+		temp_name2 = get_temp_name(); 
+		temp_name6 = get_temp_name();    
+		file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
+		file << temp_name2 << " = " << temp_name6 << " + " << b->dimlist_call[i] << ";" <<  endl;
+		release_temp_name(temp_name);
+		release_temp_name(b->dimlist_call[i]);
+		release_temp_name(temp_name6);
+		temp_name = temp_name2;
+	}
+	string temp_name3 = get_temp_name();
+	string temp_name4 = get_temp_name();
+	file << temp_name3 << " = " << temp_name2 << " * 4;\n";
+	release_temp_name(temp_name2);
+	file << temp_name4 << " = " << "addr(" << get_var_code_name(a->value) << ")" << ";" <<  endl;
+	return {temp_name4, temp_name3}; 
 }

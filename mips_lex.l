@@ -18,6 +18,7 @@
         string value;			// lexeme
         DataType data_type;		// datatype of the Datanode(if required)
         string code_name;
+        string type1;
 
         DataNode (string t, string v) {
             type = t;
@@ -55,11 +56,14 @@ NEWLINE 			([\n])
 FUNC    "func"
 BEG     "begin"
 REG 	([$][t]([0-9])+)
+FREG     ([$][f]([0-9])+)
 END     "end"
 CALL    "call"
 VAR		([_][v][a][r]([0-9])+)
+FVAR		([_][f][v][a][r]([0-9])+)
 PAR_AM  ([_][p][a][r][a][m]([0-9])+)
 RESULT  ([_][r][e][s][u][l][t]([0-9])+)
+FRESULT  ([_][f][r][e][s][u][l][t]([0-9])+)
 INT_VALUE 			([0-9]+)
 FLOAT_VAL			([0-9]+\.[0-9]+)
 AND     "&&"
@@ -69,6 +73,7 @@ MAIN    "main"
 ID      ([A-Za-z_]([A-Za-z0-9_])*)
 RETURN  "return"
 SEMICOL ";"
+CONVERT "convert"
 
 %%
 
@@ -114,8 +119,11 @@ SEMICOL ";"
 {RETURN}        {return RETURN;}
 {SEMICOL}       {return SEMICOL;}
 param           {return PARAM;}
+{CONVERT}       {return CONVERT;}
 {REG}           {(yylval.datanode) = new DataNode("REG", yytext); 
                 return REG;}
+{FREG}           {(yylval.datanode) = new DataNode("FREG", yytext); 
+                return FREG;}
 {INT_VALUE}		{(yylval.datanode) = new DataNode("INT_VALUE", yytext); 
                 yylval.datanode->data_type = (dt_int); 
                 return INT_VALUE;}
@@ -126,10 +134,14 @@ param           {return PARAM;}
                 return LABEL;}
 {VAR}			{(yylval.datanode) = new DataNode("VAR", yytext); 
                 return VAR;}
+{FVAR}			{(yylval.datanode) = new DataNode("FVAR", yytext); 
+                return FVAR;}
 {PAR_AM}	    {(yylval.datanode) = new DataNode("PAR_AM", yytext); 
                 return PAR_AM;}
 {RESULT}        {(yylval.datanode) = new DataNode("RESULT", yytext); 
                 return RESULT;}
+{FRESULT}        {(yylval.datanode) = new DataNode("FRESULT", yytext); 
+                return FRESULT;}
 {ID}			{(yylval.datanode) = new DataNode("ID", yytext); 
                 return ID;}
 {NEWLINE} 		{}

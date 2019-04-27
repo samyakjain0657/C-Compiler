@@ -27,39 +27,17 @@
         string value;			// lexeme
         DataType data_type;		// datatype of the Datanode(if required)
         string code_name;
+        vector<string> dimlist_call;
+        vector<pair<string, DataType>> param_list;
         int line_number;		// line number where the Datanode is occuring
 
-        // Children of the DataNodes
-        DataNode *child1;
-        DataNode *child2;
-        DataNode *child3;
-        DataNode *child4;
+        DataNode () {}
 
-        DataNode (string t, string v, DataNode *c1, DataNode *c2, DataNode *c3) {
+        DataNode (string t, string v) {
             type = t;
             value = v;
             data_type = dt_none;
-            child3 = c3;
-            child2 = c2;
-            child1 = c1;
-            child4 = NULL;
             line_number = yylineno;
-        }
-
-        void addChild4(DataNode *c4){
-            child4 = c4;
-        }
-
-        string getValue(){
-            return value;
-        }
-
-        string getType(){
-            return type;
-        }
-
-        DataType getDataType(){
-            return data_type;
         }
 
         void setDataType(DataType dt){
@@ -70,7 +48,7 @@
     DataNode* initialise (string c, string v){
             
         //Initialising a new code
-        DataNode *d = new DataNode( c,v,NULL,NULL,NULL);
+        DataNode *d = new DataNode( c,v);
 
         return d;
     }

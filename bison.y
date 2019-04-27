@@ -19,8 +19,8 @@ bool flag = 1;
 	struct DataNode *datanode;
 }
 
-%token<datanode> DEFAULT CASE COLON SWITCH SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID PLUSPLUS MINUSMINUS PLUSEQU MINUSEQU DIVEQU MULEQU MODEQU 
-%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 log_expr_prime and_expr and_expr_prime factor glob_dclr glob_varl
+%token<datanode>  DEFAULT CASE COLON SWITCH SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID PLUSPLUS MINUSMINUS PLUSEQU MINUSEQU DIVEQU MULEQU MODEQU 
+%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 log_expr_prime and_expr and_expr_prime factor glob_dclr glob_varl paramlist plist
 
 %start start
     
@@ -164,7 +164,7 @@ type:
 glob_varl: ID {
         enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
     }
-    | ID EQUALS INT_VALUE {
+    | ID EQUALS const {
         bool chk = check_type($1, $3);
         if (chk) {
             glob_val = $3->value;
@@ -173,7 +173,7 @@ glob_varl: ID {
             release_temp_name($3->value);
         }
     }
-    | glob_varl COMMA ID EQUALS INT_VALUE {
+    | glob_varl COMMA ID EQUALS const {
         bool chk = check_type($3, $5);
         if (chk) {
             glob_val = $5->value;
@@ -226,15 +226,19 @@ dims:
 dims2:
     LS arith_expr RS 
     {
-        if ($2->data_type == dt_int)
-            dimlist_call.push_back($2->code_name);
+        if ($2->data_type == dt_int) {
+            $$ = new DataNode();
+            $$->dimlist_call.push_back($2->code_name);
+        }
+            
         else 
             cout << "Line No. " << yylineno << " Error : array subscript (" << dimlist_call.size() <<  ") is not an integer " << endl; 
     }
     | dims2 LS arith_expr RS
     {
+        $$ = $1;
        if ($2->data_type == dt_int)
-            dimlist_call.push_back($3->code_name);
+            $$->dimlist_call.push_back($3->code_name);
         else 
             cout << "Line No. " << yylineno << " Error : array subscript (" << dimlist_call.size() <<  ") is not an integer " << endl; 
     }
@@ -380,35 +384,13 @@ stmt:
                     cout << "Line No. " << yylineno << " Error: expression must have integral type"<< endl; 
             }
 
-            string temp_name = dimlist_call[0];
-            string temp_name3 = get_temp_name();
-            string temp_name4 = get_temp_name();
             string temp_name5 = get_temp_name();
-            string temp_name6;  
-            string temp_name2 = temp_name;   
-            vector<int> temp_dim_list = get_dimlist($3->value);
-            for (int i = 1; i < temp_dim_list.size(); i++) {
-                temp_name2 = get_temp_name(); 
-                temp_name6 = get_temp_name();    
-                file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
-                file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
-                release_temp_name(temp_name);
-                release_temp_name(dimlist_call[i]);
-                release_temp_name(temp_name6);
-                temp_name = temp_name2;
-            }
-            file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-            file << temp_name4 << " = " << "addr(" << get_var_code_name($3->value) << ")" << ";" <<  endl;
-            // file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << $4->code_name << ";" <<  endl;
-            file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
-            release_temp_name(temp_name2);
-            release_temp_name(temp_name3);
-            release_temp_name(temp_name4);
-            temp_dim_list.clear();
-            dimlist_call.clear();
-            curr_temp = temp_name5;
-            // $$->code_name = temp_name5;
-                        
+            pair<string, string> temp = return_arr($3,$4);
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $4->dimlist_call.clear();
+            curr_temp = temp_name5;                        
         }
         RB LP { scope++; } 
         case_stmt default RP { 
@@ -483,324 +465,385 @@ return_stmt:
 
 expr:
     arith_expr {$$ = $1;}
-    | log_expr
+    | log_expr {$$ = $1;}
     | ID PLUSEQU arith_expr
     {
         $$ = checkType($1,$3);
         
-        string temp_name2 = get_temp_name();
-        file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
-        string temp_name3 = get_temp_name();
-        file << temp_name3 << " = " << temp_name2 << " + " << $3->code_name << ";" << endl;
-        file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name2);
-        release_temp_name($3->code_name);
-        string temp_name = get_temp_name();
-        $$->code_name = temp_name;
+        if ($$->data_type == dt_int) {
+            string temp_name2 = get_temp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_temp_name();
+            file << temp_name3 << " = " << temp_name2 << " + " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_temp_name();
+            $$->code_name = temp_name;
+        }
+        else {
+            string temp_name2 = get_ftemp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_ftemp_name();
+            file << temp_name3 << " = " << temp_name2 << " + " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_ftemp_name();
+            $$->code_name = temp_name;
+        }
     }
     | ID MINUSEQU arith_expr
     {
         $$ = checkType($1,$3);
         
-        string temp_name2 = get_temp_name();
-        file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
-        string temp_name3 = get_temp_name();
-        file << temp_name3 << " = " << temp_name2 << " - " << $3->code_name << ";" << endl;
-        file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name2);
-        release_temp_name($3->code_name);
-        string temp_name = get_temp_name();
-        $$->code_name = temp_name;
+        if ($$->data_type == dt_int) {
+            string temp_name2 = get_temp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_temp_name();
+            file << temp_name3 << " = " << temp_name2 << " - " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_temp_name();
+            $$->code_name = temp_name;
+        }
+        else {
+            string temp_name2 = get_ftemp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_ftemp_name();
+            file << temp_name3 << " = " << temp_name2 << " - " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_ftemp_name();
+            $$->code_name = temp_name;
+        }
     }
     | ID DIVEQU arith_expr
     {
         $$ = checkType($1,$3);
         
-        string temp_name2 = get_temp_name();
-        file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
-        string temp_name3 = get_temp_name();
-        file << temp_name3 << " = " << temp_name2 << " / " << $3->code_name << ";" << endl;
-        file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name2);
-        release_temp_name($3->code_name);
-        string temp_name = get_temp_name();
-        $$->code_name = temp_name;
+        if ($$->data_type == dt_int) {
+            string temp_name2 = get_temp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_temp_name();
+            file << temp_name3 << " = " << temp_name2 << " / " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_temp_name();
+            $$->code_name = temp_name;
+        }
+        else {
+            string temp_name2 = get_ftemp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_ftemp_name();
+            file << temp_name3 << " = " << temp_name2 << " / " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_ftemp_name();
+            $$->code_name = temp_name;
+        }
     }
     | ID MULEQU arith_expr
     {
         $$ = checkType($1,$3);
         
-        string temp_name2 = get_temp_name();
-        file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
-        string temp_name3 = get_temp_name();
-        file << temp_name3 << " = " << temp_name2 << " * " << $3->code_name << ";" << endl;
-        file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name2);
-        release_temp_name($3->code_name);
-        string temp_name = get_temp_name();
-        $$->code_name = temp_name;
+        if ($$->data_type == dt_int) {
+            string temp_name2 = get_temp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_temp_name();
+            file << temp_name3 << " = " << temp_name2 << " * " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_temp_name();
+            $$->code_name = temp_name;
+        }
+        else {
+            string temp_name2 = get_ftemp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_ftemp_name();
+            file << temp_name3 << " = " << temp_name2 << " * " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_ftemp_name();
+            $$->code_name = temp_name;
+        }
     }
     | ID MODEQU arith_expr
     {
         $$ = checkType($1,$3);
         
-        string temp_name2 = get_temp_name();
-        file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
-        string temp_name3 = get_temp_name();
-        file << temp_name3 << " = " << temp_name2 << " % " << $3->code_name << ";" << endl;
-        file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name2);
-        release_temp_name($3->code_name);
-        string temp_name = get_temp_name();
-        $$->code_name = temp_name;
+        if ($$->data_type == dt_int) {
+            string temp_name2 = get_temp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_temp_name();
+            file << temp_name3 << " = " << temp_name2 << " % " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_temp_name();
+            $$->code_name = temp_name;
+        }
+        else {
+            string temp_name2 = get_ftemp_name();
+            file << temp_name2 << " = " <<  get_var_code_name($1->value) << ";" << endl;
+            string temp_name3 = get_ftemp_name();
+            file << temp_name3 << " = " << temp_name2 << " % " << $$->code_name << ";" << endl;
+            file << get_var_code_name($1->value) << " = " << temp_name3 << ";" << endl;
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name2);
+            release_temp_name($$->code_name);
+            string temp_name = get_ftemp_name();
+            $$->code_name = temp_name;
+        }
     }
     
     | ID EQUALS arith_expr 
     {
-        $$ = checkType($1,$3);
-        
-        file << get_var_code_name($1->value) << " = " << $3->code_name << ";" << endl;
-        release_temp_name($3->code_name);
-        string temp_name = get_temp_name();
-        // file << temp_name << " = " << get_var_code_name($1->value) <<  ";" << endl;
-        $$->code_name = temp_name;
+        $$ = checkType($1,$3);        
+        file << get_var_code_name($1->value) << " = " << $$->code_name << ";" << endl;
     }
     | ID dims2 EQUALS arith_expr 
     {
         $$ = checkType($1,$4);
+        pair<string, string> temp = return_arr($1, $2);
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" << endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        if ($$->data_type == dt_int) {
+            string temp_name5 = get_temp_name();
+            file << temp.first << "[" << temp.second <<"]"  << " = " << $$->code_name << ";" <<  endl;
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ");" << endl;
-        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << $4->code_name << ";" <<  endl;
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"];" << endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+        else {
+            string temp_name5 = get_ftemp_name();
+            file << temp.first << "[" << temp.second <<"]"  << " = " << $$->code_name << ";" <<  endl;
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
+        }
+        
     }
     | ID dims2 PLUSEQU arith_expr 
     {
         $$ = checkType($1,$4);
+        pair<string, string> temp = return_arr($1, $2);
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" << endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        if ($$->data_type == dt_int) {
+            string temp_name5 = get_temp_name();
+            string temp_name7 = get_temp_name();
+            string temp_name8 = get_temp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " + " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
+
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ");" << endl;
+        else {
+            string temp_name5 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            string temp_name8 = get_ftemp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " + " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
 
-        string temp_name7 = get_temp_name();
-        string temp_name8 = get_temp_name();
-        file << temp_name7 << " = " << temp_name4 << "[" << temp_name3 << "]" << ";" <<  endl;
-        file << temp_name8 << " = " << temp_name7 << " + " << $4->code_name << ";" <<  endl;
-        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << temp_name8 << ";" <<  endl;
-
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"];" << endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name7);
-        release_temp_name(temp_name8);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
+        }
+            
     }
     | ID dims2 MINUSEQU arith_expr 
     {
         $$ = checkType($1,$4);
+        pair<string, string> temp = return_arr($1, $2);
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" << endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        if ($$->data_type == dt_int) {
+            string temp_name5 = get_temp_name();
+            string temp_name7 = get_temp_name();
+            string temp_name8 = get_temp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " - " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
+
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ");" << endl;
+        else {
+            string temp_name5 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            string temp_name8 = get_ftemp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " - " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
 
-        string temp_name7 = get_temp_name();
-        string temp_name8 = get_temp_name();
-        file << temp_name7 << " = " << temp_name4 << "[" << temp_name3 << "]" << ";" <<  endl;
-        file << temp_name8 << " = " << temp_name7 << " - " << $4->code_name << ";" <<  endl;
-        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << temp_name8 << ";" <<  endl;
-
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"];" << endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name7);
-        release_temp_name(temp_name8);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
+        }
     }
     | ID dims2 DIVEQU arith_expr 
     {
         $$ = checkType($1,$4);
+        pair<string, string> temp = return_arr($1, $2);
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" << endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        if ($$->data_type == dt_int) {
+            string temp_name5 = get_temp_name();
+            string temp_name7 = get_temp_name();
+            string temp_name8 = get_temp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " / " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
+
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ");" << endl;
+        else {
+            string temp_name5 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            string temp_name8 = get_ftemp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " / " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
 
-        string temp_name7 = get_temp_name();
-        string temp_name8 = get_temp_name();
-        file << temp_name7 << " = " << temp_name4 << "[" << temp_name3 << "]" << ";" <<  endl;
-        file << temp_name8 << " = " << temp_name7 << " / " << $4->code_name << ";" <<  endl;
-        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << temp_name8 << ";" <<  endl;
-
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"];" << endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name7);
-        release_temp_name(temp_name8);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
+        }
     }
     | ID dims2 MULEQU arith_expr 
     {
         $$ = checkType($1,$4);
+        pair<string, string> temp = return_arr($1, $2);
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" << endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        if ($$->data_type == dt_int) {
+            string temp_name5 = get_temp_name();
+            string temp_name7 = get_temp_name();
+            string temp_name8 = get_temp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " * " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
+
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ");" << endl;
+        else {
+            string temp_name5 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            string temp_name8 = get_ftemp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " * " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
 
-        string temp_name7 = get_temp_name();
-        string temp_name8 = get_temp_name();
-        file << temp_name7 << " = " << temp_name4 << "[" << temp_name3 << "]" << ";" <<  endl;
-        file << temp_name8 << " = " << temp_name7 << " * " << $4->code_name << ";" <<  endl;
-        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << temp_name8 << ";" <<  endl;
-
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"];" << endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name7);
-        release_temp_name(temp_name8);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
+        }
     }
     | ID dims2 MODEQU arith_expr 
     {
         $$ = checkType($1,$4);
+        pair<string, string> temp = return_arr($1, $2);
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" << endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" << endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        if ($$->data_type == dt_int) {
+            string temp_name5 = get_temp_name();
+            string temp_name7 = get_temp_name();
+            string temp_name8 = get_temp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " % " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
+
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ");" << endl;
+        else {
+            string temp_name5 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            string temp_name8 = get_ftemp_name();
+            file << temp_name7 << " = " << temp.first << "[" << temp.second << "]" << ";" <<  endl;
+            file << temp_name8 << " = " << temp_name7 << " % " << $$->code_name << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]"  << " = " << temp_name8 << ";" <<  endl;
 
-        string temp_name7 = get_temp_name();
-        string temp_name8 = get_temp_name();
-        file << temp_name7 << " = " << temp_name4 << "[" << temp_name3 << "]" << ";" <<  endl;
-        file << temp_name8 << " = " << temp_name7 << "% " << $4->code_name << ";" <<  endl;
-        file << temp_name4 << "[" << temp_name3 <<"]"  << " = " << temp_name8 << ";" <<  endl;
-
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"];" << endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name7);
-        release_temp_name(temp_name8);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+            file << temp_name5 << " = " << temp.first << "[" << temp.second <<"];" << endl;
+            release_temp_name($$->code_name);
+            release_temp_name(temp_name7);
+            release_temp_name(temp_name8);
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp_name5;
+        }
     }
 ;
 
@@ -950,11 +993,35 @@ rel_expr:
         $$ = res;
         string temp1 = $1->code_name;
         string temp2 = $3->code_name;
-        
+        string temp3;
+        int flag = 0;
+
+        if($1->data_type == dt_float && $3->data_type == dt_int){
+            file << "convert " << $3->code_name  << "\n";
+            temp3 = get_ftemp_name();
+            file << temp3 << " = " << $3->code_name<< ";"  << endl;
+            flag = 1;
+        }
+        else if ($1->data_type == dt_int && $3->data_type == dt_float){
+            file << "convert " << $1->code_name << "\n";
+            temp3 = get_ftemp_name();
+            file << temp3 << " = " << $1->code_name<< ";" << endl;
+            flag = 2;
+        }
+
         string temp_name = get_temp_name();
-        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
+        if(flag == 1){
+            file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp3 << ";" <<  endl;
+        }
+        else if(flag == 2){
+            file << temp_name  << " = "  <<  temp3 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
+        }
+        else{
+            file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;                
+        }
         release_temp_name(temp1);
         release_temp_name(temp2);
+        release_temp_name(temp3);
         $$->code_name = temp_name;
     }
 ;
@@ -965,13 +1032,42 @@ arith_expr:
     {
         string temp1 = $1->code_name;
         string temp2 = $3->code_name;
-
+        string temp3, temp_name;
+        int flag = 0;
         $$ = typecaster($1,$3);
-
-        string temp_name = get_temp_name();
-        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
-        release_temp_name(temp1);
-        release_temp_name(temp2);
+        if($1->data_type == dt_float && $3->data_type == dt_int){
+            file << "convert " << $3->code_name  << "\n";
+            temp3 = get_ftemp_name();
+            file << temp3 << " = " << $3->code_name << ";" << endl;
+            flag = 1;
+        }
+        else if ($1->data_type == dt_int && $3->data_type == dt_float){
+            file << "convert " << $1->code_name << "\n";
+            temp3 = get_ftemp_name();
+            file << temp3 << " = " << $1->code_name << ";"<< endl;
+            flag = 2;
+        }
+        if($$->data_type == dt_int){
+            temp_name = get_temp_name();
+            file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+        }
+        else if($$->data_type == dt_float){
+            temp_name = get_ftemp_name();
+            if(flag == 1){
+                file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp3 << ";" <<  endl;
+            }
+            else if(flag == 2){
+                file << temp_name  << " = "  <<  temp3 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
+            }
+            else{
+                file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;                
+            }
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+            release_temp_name(temp3);
+        }
         $$->code_name = temp_name;
     }
     |   expr1 {$$ = $1;}
@@ -982,12 +1078,42 @@ expr1:
     {
         string temp1 = $1->code_name;
         string temp2 = $3->code_name;
-
+        string temp3, temp_name;
+        int flag = 0;        
         $$ = typecaster($1,$3);
-        string temp_name = get_temp_name();
-        file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
-        release_temp_name(temp1);
-        release_temp_name(temp2);
+        if($1->data_type == dt_float && $3->data_type == dt_int){
+            file << "convert " << $3->code_name << "\n";
+            temp3 = get_ftemp_name();
+            file << temp3 << " = " << $3->code_name  << ";" << endl;
+            flag = 1;
+        }
+        else if ($1->data_type == dt_int && $3->data_type == dt_float){
+            file << "convert " << $1->code_name << "\n";
+            temp3 = get_ftemp_name();
+            file << temp3 << " = " << $1->code_name << ";" << endl;
+            flag = 2;
+        }
+        if($$->data_type == dt_int){
+            temp_name = get_temp_name();
+            file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+        }
+        else if($$->data_type == dt_float){
+            temp_name = get_ftemp_name();
+            if(flag == 1){
+                file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp3 << ";" <<  endl;
+            }
+            else if(flag == 2){
+                file << temp_name  << " = "  <<  temp3 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
+            }
+            else {
+                file << temp_name  << " = "  <<  temp1 << " " << $2->code_name << " " << temp2 << ";" <<  endl;
+            }
+            release_temp_name(temp1);
+            release_temp_name(temp2);
+            release_temp_name(temp3);
+        }
         $$->code_name = temp_name;
     }
     |   term {$$ = $1;}
@@ -1001,14 +1127,26 @@ term:
     |    func_call 
     {
         $$ = $1;
-        string temp_name = get_temp_name();
+        string temp_name;
+        if ($1->data_type == dt_int) {
+            temp_name = get_temp_name();
+        }
+        else {
+            temp_name = get_ftemp_name();
+        }
         file << temp_name << " = " << $1->code_name << ";" <<  endl;
         $$->code_name = temp_name;
     }
     |    const 
     {
         $$ = $1;
-        string temp_name = get_temp_name();
+        string temp_name;
+        if ($1->data_type == dt_int) {
+            temp_name = get_temp_name();
+        }
+        else {
+            temp_name = get_ftemp_name();
+        }
         file << temp_name << " = " << $1->value << ";" <<  endl;
         $$->code_name = temp_name;
     }
@@ -1016,7 +1154,13 @@ term:
     {
         set_data_type($1); 
         $$ = $1;
-        string temp_name = get_temp_name();
+        string temp_name;
+        if ($1->data_type == dt_int) {
+            temp_name = get_temp_name();
+        }
+        else {
+            temp_name = get_ftemp_name();
+        }
         file << temp_name << " = " << get_var_code_name($1->value) << ";" <<  endl;
         $$->code_name = temp_name;
     }
@@ -1024,275 +1168,321 @@ term:
     {
         set_data_type($1); 
         $$ = $1;
-        string temp_name = get_temp_name();
+        string temp_name;
+        if ($1->data_type == dt_int) {
+            temp_name = get_temp_name();
+        }
+        else {
+            temp_name = get_ftemp_name();
+        }
         file << temp_name << " = " << get_var_code_name($1->value) << ";" <<  endl;
         $$->code_name = temp_name;
 
-        string temp_name2 = get_temp_name();
-        string temp_name3 = get_temp_name();
-        file << temp_name2 << " = " << temp_name << ";" << endl;
-        file << temp_name3 << " = " << temp_name << ";" << endl;
-        file << temp_name3 << " = " << temp_name2 << " + 1;\n";
-        file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
+        if ($1->data_type == dt_int) {
+            string temp_name2 = get_temp_name();
+            string temp_name3 = get_temp_name();
+            file << temp_name2 << " = " << temp_name << ";" << endl;
+            file << temp_name3 << " = " << temp_name << ";" << endl;
+            file << temp_name3 << " = " << temp_name2 << " + 1;\n";
+            file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+        }
+        else {
+            string temp_name2 = get_ftemp_name();
+            string temp_name3 = get_ftemp_name();
+            string temp_name4 = get_ftemp_name();
+            file << temp_name2 << " = " << temp_name << ";" << endl;
+            file << temp_name3 << " = " << temp_name << ";" << endl;
+            file << temp_name4 << " = 1.0\n"; 
+            file << temp_name3 << " = " << temp_name2 << " + " << temp_name4 << ";\n";
+            file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name4);
+        }
+        
     }
     |    ID MINUSMINUS {
         set_data_type($1); 
         $$ = $1;
-        string temp_name = get_temp_name();
+        string temp_name;
+        if ($1->data_type == dt_int) {
+            temp_name = get_temp_name();
+        }
+        else {
+            temp_name = get_ftemp_name();
+        }
         file << temp_name << " = " << get_var_code_name($1->value) << ";" <<  endl;
         $$->code_name = temp_name;
 
-        string temp_name2 = get_temp_name();
-        string temp_name3 = get_temp_name();
-        file << temp_name2 << " = " << temp_name << ";" << endl;
-        file << temp_name3 << " = " << temp_name << ";" << endl;
-        file << temp_name3 << " = " << temp_name2 << " - 1;\n";
-        file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
+        if ($1->data_type == dt_int) {
+            string temp_name2 = get_temp_name();
+            string temp_name3 = get_temp_name();
+            file << temp_name2 << " = " << temp_name << ";" << endl;
+            file << temp_name3 << " = " << temp_name << ";" << endl;
+            file << temp_name3 << " = " << temp_name2 << " - 1;\n";
+            file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+        }
+        else {
+            string temp_name2 = get_ftemp_name();
+            string temp_name3 = get_ftemp_name();
+            string temp_name4 = get_ftemp_name();
+            file << temp_name2 << " = " << temp_name << ";" << endl;
+            file << temp_name3 << " = " << temp_name << ";" << endl;
+            file << temp_name4 << " = 1.0\n"; 
+            file << temp_name3 << " = " << temp_name2 << " - " << temp_name4 << ";\n";
+            file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name4);
+        }
     }
     |    PLUSPLUS ID {
-        set_data_type($1); 
-        $$ = $1;
-        string temp_name = get_temp_name();
+        set_data_type($2); 
+        $$ = $2;
+        string temp_name;
+        if ($2->data_type == dt_int) {
+            temp_name = get_temp_name();
+            string temp_name2 = get_temp_name();
+            string temp_name3 = get_temp_name();
+            file << temp_name2 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name3 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name3 << " = " << temp_name2 << " + 1;\n";
+            file << get_var_code_name($2->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+            file << temp_name << " = " << get_var_code_name($2->value) << ";" <<  endl;
+        }
+        else {
+            temp_name = get_ftemp_name();
+            string temp_name2 = get_ftemp_name();
+            string temp_name3 = get_ftemp_name();
+            string temp_name4 = get_ftemp_name();
+            file << temp_name2 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name3 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name4 << " = " << "1.0;\n";
+            file << temp_name3 << " = " << temp_name2 << " + "<< temp_name4 <<";\n";
+            file << get_var_code_name($2->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name4);
+            file << temp_name << " = " << get_var_code_name($2->value) << ";" <<  endl;
+        }
         $$->code_name = temp_name;
-
-        string temp_name2 = get_temp_name();
-        string temp_name3 = get_temp_name();
-        file << temp_name2 << " = " << get_var_code_name($2->value) << ";" << endl;
-        file << temp_name3 << " = " << get_var_code_name($2->value) << ";" << endl;
-        file << temp_name3 << " = " << temp_name2 << " + 1;\n";
-        file << get_var_code_name($2->value)  << " = " << temp_name3 << ";" <<  endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        file << temp_name << " = " << get_var_code_name($2->value) << ";" <<  endl;
     }
-    |    MINUSMINUS ID {
-        set_data_type($1); 
-        $$ = $1;
-        string temp_name = get_temp_name();
+    |   MINUSMINUS ID {
+        set_data_type($2); 
+        $$ = $2;
+        string temp_name;
+        if ($2->data_type == dt_int) {
+            temp_name = get_temp_name();
+            string temp_name2 = get_temp_name();
+            string temp_name3 = get_temp_name();
+            file << temp_name2 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name3 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name3 << " = " << temp_name2 << " - 1;\n";
+            file << get_var_code_name($2->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+            file << temp_name << " = " << get_var_code_name($2->value) << ";" <<  endl;
+        }
+        else {
+            temp_name = get_ftemp_name();
+            string temp_name2 = get_ftemp_name();
+            string temp_name3 = get_ftemp_name();
+            string temp_name4 = get_ftemp_name();
+            file << temp_name2 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name3 << " = " << get_var_code_name($2->value) << ";" << endl;
+            file << temp_name4 << " = " << "1.0;\n";
+            file << temp_name3 << " = " << temp_name2 << " - "<< temp_name4 <<";\n";
+            file << get_var_code_name($2->value)  << " = " << temp_name3 << ";" <<  endl;
+            release_temp_name(temp_name2);
+            release_temp_name(temp_name3);
+            release_temp_name(temp_name4);
+            file << temp_name << " = " << get_var_code_name($2->value) << ";" <<  endl;
+        }
         $$->code_name = temp_name;
-
-        string temp_name2 = get_temp_name();
-        string temp_name3 = get_temp_name();
-        file << temp_name2 << " = " << get_var_code_name($2->value) << ";" << endl;
-        file << temp_name3 << " = " << get_var_code_name($2->value) << ";" << endl;
-        file << temp_name3 << " = " << temp_name2 << " - 1;\n";
-        file << get_var_code_name($2->value)  << " = " << temp_name3 << ";" <<  endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        file << temp_name << " = " << get_var_code_name($2->value) << ";" <<  endl;
     }
     |    ID dims2
     {        
         set_data_type($1);
-        
         $$ = $1;
         ($$)->type = "array";
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;      
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        for (auto it: dimlist_call) {
-            cout << it <<  " ";
-        }cout << endl;
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        pair<string, string> temp = return_arr($1, $2);
+        string temp2;
+        if ($1->data_type == dt_int) {
+            temp2 = get_temp_name();
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << ";" <<  endl;
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+        else {
+            temp2 = get_ftemp_name();
+        }
+        
+        file << temp2 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+        release_temp_name(temp.second);
+        release_temp_name(temp.first);
+        $2->dimlist_call.clear();
+        $$->code_name = temp2;
     }
     |    ID dims2 PLUSPLUS
     {        
-        set_data_type($1);
-        
+        set_data_type($1);  
         $$ = $1;
         ($$)->type = "array";
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;     
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        // for (auto it: dimlist_call) {
-        //     cout << it <<  " ";
-        // }cout << endl;
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        pair<string, string> temp = return_arr($1, $2);
+        string temp2;
+        if ($1->data_type == dt_int) {
+            temp2 = get_temp_name();
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << ";" <<  endl;
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
+        else {
+            temp2 = get_ftemp_name();
+        }
+        file << temp2 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
 
-        temp_name6 = get_temp_name();
-        file << temp_name6 << " = " << temp_name5 << ";" << endl;
-        file << temp_name4 << "[" << temp_name3 <<"]" << " = " << temp_name6 << " + 1" << ";" <<  endl;
-        release_temp_name(temp_name6);
+        if ($1->data_type == dt_int) {
+            string temp_name6 = get_temp_name();
+            file << temp_name6 << " = " << temp2 << ";" << endl;
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " + 1" << ";" <<  endl;
+            release_temp_name(temp_name6);        
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp2;
+        }
+        else {
+            string temp_name6 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            file << temp_name6 << " = " << temp2 << ";" << endl;
+            file << temp_name7 << " = " << "1.0;\n";
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " + " << temp_name7 << ";" <<  endl;
+            release_temp_name(temp_name6);  
+            release_temp_name(temp_name7);        
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp2;
+        }
         
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
     }
     |    ID dims2 MINUSMINUS
     {        
-        set_data_type($1);
-        
+        set_data_type($1);  
         $$ = $1;
         ($$)->type = "array";
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;    
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        // for (auto it: dimlist_call) {
-        //     cout << it <<  " ";
-        // }cout << endl;
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
-            release_temp_name(temp_name6);
-            temp_name = temp_name2;
+        pair<string, string> temp = return_arr($1, $2);
+        string temp2;
+        if ($1->data_type == dt_int) {
+            temp2 = get_temp_name();
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << ";" <<  endl;
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
-        
-        temp_name6 = get_temp_name();
-        file << temp_name6 << " = " << temp_name5 << ";" << endl;
-        file << temp_name4 << "[" << temp_name3 <<"]" << " = " << temp_name6 << " - 1" << ";" <<  endl;
-        release_temp_name(temp_name6);
-        
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+        else {
+            temp2 = get_ftemp_name();
+        }
+        file << temp2 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+
+        if ($1->data_type == dt_int) {
+            string temp_name6 = get_temp_name();
+            file << temp_name6 << " = " << temp2 << ";" << endl;
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " - 1" << ";" <<  endl;
+            release_temp_name(temp_name6);        
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp2;
+        }
+        else {
+            string temp_name6 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            file << temp_name6 << " = " << temp2 << ";" << endl;
+            file << temp_name7 << " = " << "1.0;\n";
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " - " << temp_name7 << ";" <<  endl;
+            release_temp_name(temp_name6);  
+            release_temp_name(temp_name7);        
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $2->dimlist_call.clear();
+            $$->code_name = temp2;
+        }
     }
     |    PLUSPLUS ID dims2
     {        
-        set_data_type($1);
-        
-        $$ = $1;
+        set_data_type($2);
+        $$ = $2;
         ($$)->type = "array";
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        // for (auto it: dimlist_call) {
-        //     cout << it <<  " ";
-        // }cout << endl;
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
+        pair<string, string> temp = return_arr($2, $3);
+        string temp2;
+        if ($2->data_type == dt_int) {
+            temp2 = get_temp_name();
+            string temp_name6 = get_temp_name();
+            file << temp_name6 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " + 1" << ";" <<  endl;
             release_temp_name(temp_name6);
-            temp_name = temp_name2;
+
+            file << temp2 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $3->dimlist_call.clear();
+            $$->code_name = temp2;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << ";" <<  endl;
+        else {
+            temp2 = get_ftemp_name();
+            string temp_name6 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            file << temp_name6 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            file << temp_name7 << " = " << "1.0;\n";
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " + " << temp_name7 << ";" <<  endl;
+            release_temp_name(temp_name6);
+            release_temp_name(temp_name7);
 
-        temp_name6 = get_temp_name();
-        file << temp_name6 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
-        file << temp_name4 << "[" << temp_name3 <<"]" << " = " << temp_name6 << " + 1" << ";" <<  endl;
-        release_temp_name(temp_name6);
-
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+            file << temp2 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $3->dimlist_call.clear();
+            $$->code_name = temp2;
+        }
     }
     |    MINUSMINUS ID dims2
     {        
-        set_data_type($1);
-        
-        $$ = $1;
+        set_data_type($2);
+        $$ = $2;
         ($$)->type = "array";
 
-        string temp_name = dimlist_call[0];
-        string temp_name3 = get_temp_name();
-        string temp_name4 = get_temp_name();
-        string temp_name5 = get_temp_name();
-        string temp_name6;  
-        string temp_name2 = temp_name;      
-        vector<int> temp_dim_list = get_dimlist($1->value);
-        // for (auto it: dimlist_call) {
-        //     cout << it <<  " ";
-        // }cout << endl;
-        for (int i = 1; i < temp_dim_list.size(); i++) {
-            temp_name2 = get_temp_name(); 
-            temp_name6 = get_temp_name();    
-            file << temp_name6 << " = " << temp_name << " * " << temp_dim_list[i] << ";" <<  endl;
-            file << temp_name2 << " = " << temp_name6 << " + " << dimlist_call[i] << ";" <<  endl;
-            release_temp_name(temp_name);
-            release_temp_name(dimlist_call[i]);
+        pair<string, string> temp = return_arr($2, $3);
+        string temp2;
+        if ($2->data_type == dt_int) {
+            temp2 = get_temp_name();
+            string temp_name6 = get_temp_name();
+            file << temp_name6 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " - 1" << ";" <<  endl;
             release_temp_name(temp_name6);
-            temp_name = temp_name2;
+
+            file << temp2 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $3->dimlist_call.clear();
+            $$->code_name = temp2;
         }
-        file << temp_name3 << " = " << temp_name2 << " * 4;\n";
-        file << temp_name4 << " = " << "addr(" << get_var_code_name($1->value) << ")" << ";" <<  endl;
+        else {
+            temp2 = get_ftemp_name();
+            string temp_name6 = get_ftemp_name();
+            string temp_name7 = get_ftemp_name();
+            file << temp_name6 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            file << temp_name7 << " = " << "1.0;\n";
+            file << temp.first << "[" << temp.second <<"]" << " = " << temp_name6 << " - " << temp_name7 << ";" <<  endl;
+            release_temp_name(temp_name6);
+            release_temp_name(temp_name7);
 
-        temp_name6 = get_temp_name();
-        file << temp_name6 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
-        file << temp_name4 << "[" << temp_name3 <<"]" << " = " << temp_name6 << " - 1" << ";" <<  endl;
-        release_temp_name(temp_name6);
-
-        file << temp_name5 << " = " << temp_name4 << "[" << temp_name3 <<"]" << ";" <<  endl;
-        release_temp_name(temp_name2);
-        release_temp_name(temp_name3);
-        release_temp_name(temp_name4);
-        temp_dim_list.clear();
-        dimlist_call.clear();
-        $$->code_name = temp_name5;
+            file << temp2 << " = " << temp.first << "[" << temp.second <<"]" << ";" <<  endl;
+            release_temp_name(temp.second);
+            release_temp_name(temp.first);
+            $3->dimlist_call.clear();
+            $$->code_name = temp2;
+        }
     }
 ;
 
@@ -1324,12 +1514,12 @@ op3:
 func_call:  
     ID LB paramlist RB 
     {
-        DataNode* func = check_func_call(($1)->value);
-        for (auto it: param_list) {
+        DataNode* func = check_func_call(($1)->value, $3->param_list);
+        for (auto it: $3->param_list) {
             file << "param " << it.first << ";\n";
             release_temp_name(it.first);
         }
-        if(func->data_type == dt_int || func->data_type == dt_float ){
+        if(func->data_type == dt_int){
             file << "param _result" << res_counter <<";\n"; 
             var *variable = new var();
             
@@ -1343,23 +1533,42 @@ func_call:
             variable->level = scope;
             variable->type = "simple";
             variable->isParam = false;
+            variable->value = "0";
+            symbol_list.push_back(*variable);
+            func->code_name =  variable->code_name;
+        }
+        if(func->data_type == dt_float ){
+            file << "param _fresult" << res_counter <<";\n"; 
+            var *variable = new var();
+            
+            if (func->data_type == dt_int)
+                variable->eletype = "int";
+            else
+                variable->eletype = "float";
+            
+            variable->name = "_fresult" + to_string(res_counter);
+            variable->code_name =  "_fresult" + to_string(res_counter++);
+            variable->level = scope;
+            variable->type = "simple";
+            variable->isParam = false;
+            variable->value = "0";
             symbol_list.push_back(*variable);
             func->code_name =  variable->code_name;
         }
         file << "call " << ($1)->value <<";\n";
-        param_list.clear();
+        $3->param_list.clear();
         $$ = func;
     }
 ;
 
 paramlist:  
-    plist 
-    |
+    plist {$$ = $1;}
+    | {$$ = new DataNode;}
 ;
 
 plist:  
-    plist COMMA expr {param_list.push_back({($3)->code_name,($3)->data_type});}
-    | expr {param_list.push_back({($1)->code_name,($1)->data_type});}
+    plist COMMA expr {$$ = $1; $$->param_list.push_back({($3)->code_name,($3)->data_type});}
+    | expr { $$ = new DataNode(); $$->param_list.push_back({($1)->code_name,($1)->data_type});}
 ;
 
 %%
