@@ -7,7 +7,7 @@ extern int yyparse();
 extern FILE* yyin;
 extern int yylineno;
 int yyerror(char *s);
-bool flag = 1;
+
 
 %}
 
@@ -19,8 +19,8 @@ bool flag = 1;
 	struct DataNode *datanode;
 }
 
-%token<datanode>  DEFAULT CASE COLON SWITCH SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID PLUSPLUS MINUSMINUS PLUSEQU MINUSEQU DIVEQU MULEQU MODEQU 
-%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 log_expr_prime and_expr and_expr_prime factor glob_dclr glob_varl paramlist plist
+%token<datanode>  DEFAULT PRINTINT PRINTFLOAT CASE COLON SWITCH SEMICOL EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP NEQ MAIN IF FOR WHILE ELSE INT FLOAT TRUE FALSE BOOL LP RP LS RS LB RB RETURN OR AND BREAK CONTINUE COMMA INT_VALUE FLOAT_VAL LIBRARY ID NEWLINE WHITESPACE VOID PLUSPLUS MINUSMINUS PLUSEQU MINUSEQU DIVEQU MULEQU MODEQU 
+%type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 log_expr_prime and_expr and_expr_prime factor glob_dclr glob_varl paramlist plist plusnegterm for_expr for_log_expr
 
 %start start
     
@@ -104,9 +104,11 @@ func_def:
         active_type = dt_none;
         enter_func(($2)->value,"void",active_func_ptr);
         param_count=0;
-        file << "func begin " << ($2)->value << "\n";
+        file << "func begin " << ($2)->value;
     }
     decl_plist RB LP {  
+        file << " " << func_dec_counter << "\n";  
+        func_dec_counter = 0;
         scope++;
     } 
     body {
@@ -165,8 +167,8 @@ glob_varl: ID {
         enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
     }
     | ID EQUALS const {
-        bool chk = check_type($1, $3);
-        if (chk) {
+        // bool chk = check_type($1, $3);
+        if (1) {
             glob_val = $3->value;
             enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
             // file << get_var_code_name($1->value) << " = " << $3->value << ";" <<  endl;
@@ -174,12 +176,48 @@ glob_varl: ID {
         }
     }
     | glob_varl COMMA ID EQUALS const {
-        bool chk = check_type($3, $5);
-        if (chk) {
+        // bool 1 = check_type($3, $5);
+        if (1) {
             glob_val = $5->value;
             enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);
             // file << get_var_code_name($3->value) << " = " << $5->value << ";" <<  endl;
             release_temp_name($5->value);
+        }
+    }
+    | ID EQUALS ADD const {
+        // bool chk = check_type($1, $3);
+        if (1) {
+            glob_val = $3->value + $4->value;
+            enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
+            // file << get_var_code_name($1->value) << " = " << $4->value << ";" <<  endl;
+            release_temp_name($4->value);
+        }
+    }
+    | glob_varl COMMA ID EQUALS  ADD const {
+        // bool 1 = check_type($3, $5);
+        if (1) {
+            glob_val = $5->value + $6->value;
+            enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);
+            // file << get_var_code_name($3->value) << " = " << $6->value << ";" <<  endl;
+            release_temp_name($6->value);
+        }
+    }
+    | ID EQUALS SUB const {
+        // bool chk = check_type($1, $3);
+        if (1) {
+            glob_val = $3->value + $4->value;
+            enter_var(($1)->value,scope,"simple",dimlist,active_func_ptr);
+            // file << get_var_code_name($1->value) << " = " << $4->value << ";" <<  endl;
+            release_temp_name($4->value);
+        }
+    }
+    | glob_varl COMMA ID EQUALS  SUB const {
+        // bool 1 = check_type($3, $5);
+        if (1) {
+            glob_val = $5->value + $6->value;
+            enter_var(($3)->value,scope,"simple",dimlist,active_func_ptr);
+            // file << get_var_code_name($3->value) << " = " << $6->value << ";" <<  endl;
+            release_temp_name($6->value);
         }
     }
     | glob_varl COMMA ID 
@@ -265,7 +303,9 @@ stmt:
     |   error LP
     |   error SEMICOL
     |   var_dclr
-    |   expr SEMICOL
+    |   expr SEMICOL {
+        release_temp_name($1->code_name);
+    }
     |   CONTINUE SEMICOL {
             if(loop_stack.size()==0)
                 cout << "Line No. " << yylineno << " Error : Continue should be always used inside a loop"<<endl; 
@@ -316,21 +356,21 @@ stmt:
             loop_stack.pop();
             last_used.pop();
         }
-    |   FOR LB expr SEMICOL 
+    |   FOR LB for_expr SEMICOL 
         {
             loop_stack.push(loop_counter);
             last_used.push(1);
             file << "LJ" << loop_counter << ":\n";
             release_temp_name($3->code_name);
         }
-        log_expr SEMICOL
+        for_log_expr SEMICOL
         {
             file << "if " << $6->code_name  << " != 1 goto LF" << loop_counter << endl;
             file << "goto LS" << loop_counter << endl;
             file << "LT" << loop_counter << ":\n";
             release_temp_name($6->code_name);
         } 
-        expr RB LP 
+        for_expr RB LP 
         {
             scope++;
             file << "goto LJ" << loop_counter << endl;
@@ -401,6 +441,55 @@ stmt:
             last_used.pop();
             release_temp_name(curr_temp);
         }
+    |   PRINTINT SEMICOL {
+            string temp = $1->value;
+            int found = temp.find(',');
+            temp.replace(0, found+1,"");
+            found = temp.find(')');
+            temp.replace(found, temp.length(),"");
+            // cout << temp << endl;
+
+            string varname = get_var_code_name(temp);
+            file << "print " << varname << ";\n";
+
+        }
+    | PRINTFLOAT SEMICOL {
+        string temp = $1->value;
+        int found = temp.find(',');
+        temp.replace(0, found+1,"");
+        found = temp.find(')');
+        temp.replace(found, temp.length(),"");
+        // cout << temp << endl;
+
+        string varname = get_var_code_name(temp);
+        file << "print " << varname << ";\n";
+            
+    }
+;
+
+for_expr:
+    expr {$$ = $1;}
+    | {
+        $$ = new DataNode();
+    }
+
+;
+
+for_log_expr:
+    log_expr {$$ = $1;}
+    | {
+        $$ = new DataNode();
+        string temp1, temp2, temp3;
+        temp1 = get_temp_name();
+        temp2 = get_temp_name();
+        temp3 = get_temp_name();
+        file << temp2 << " = 1;\n";
+        file << temp3 << " = 1;\n";
+        file << temp1 << " = " << temp2 << " == " << temp3 << " ;" << endl; 
+        release_temp_name(temp2);
+        release_temp_name(temp3);
+        $$->code_name = temp1;
+    }
 ;
 
 else_stmt: 
@@ -455,11 +544,13 @@ return_stmt:
         DataNode *res = new DataNode();
         res->data_type = dt_none;
         $$ = res;
+        $$ = check_func_return_type(res);
         file << "return;\n";
     }
     | RETURN expr {
         $$ = check_func_return_type($2);
         file << "return " << $2->code_name << ";" << endl;
+        release_temp_name($2->code_name);
     }
 ;
 
@@ -1074,7 +1165,7 @@ arith_expr:
 ;
 
 expr1: 
-    expr1 op2 term 
+    expr1 op2 plusnegterm 
     {
         string temp1 = $1->code_name;
         string temp2 = $3->code_name;
@@ -1116,8 +1207,61 @@ expr1:
         }
         $$->code_name = temp_name;
     }
-    |   term {$$ = $1;}
-;    
+    |   plusnegterm {$$ = $1;}
+;
+
+plusnegterm:
+    ADD term
+    {
+        $$ = $2;
+        string temp_name;
+        if ($2->code_name[1] == 't') {
+            temp_name = get_temp_name();
+            string temp_name2 = get_temp_name();
+            file << temp_name2 << " = " << "0" << ";" << endl;
+            file << temp_name << " = " << temp_name2 << " + " << $2->code_name << ";" <<  endl;
+            release_temp_name($2->code_name);
+            release_temp_name(temp_name2);
+            $$->code_name = temp_name;
+        }
+        else {
+            temp_name = get_ftemp_name();
+            string temp_name2 = get_ftemp_name();
+            file << temp_name2 << " = " << "0.0" << ";" << endl;
+            file << temp_name << " = " << temp_name2 << " + " << $2->code_name << ";" <<  endl;
+            release_temp_name($2->code_name);
+            release_temp_name(temp_name2);
+            $$->code_name = temp_name;
+        }
+
+    }
+    | SUB term {
+        $$ = $2;
+        string temp_name;
+        if ($2->code_name[1] == 't') {
+            temp_name = get_temp_name();
+            string temp_name2 = get_temp_name();
+            file << temp_name2 << " = " << "0" << ";" << endl;
+            file << temp_name << " = " << temp_name2 << " - " << $2->code_name << ";" <<  endl;
+            release_temp_name($2->code_name);
+            release_temp_name(temp_name2);
+            $$->code_name = temp_name;
+        }
+        else {
+            temp_name = get_ftemp_name();
+            string temp_name2 = get_ftemp_name();
+            file << temp_name2 << " = " << "0.0" << ";" << endl;
+            file << temp_name << " = " << temp_name2 << " - " << $2->code_name << ";" <<  endl;
+            release_temp_name($2->code_name);
+            release_temp_name(temp_name2);
+            $$->code_name = temp_name;
+        }
+
+    }
+    | term {
+        $$ = $1;
+    }
+;
 
 term:   
      LB arith_expr RB 
@@ -1130,12 +1274,15 @@ term:
         string temp_name;
         if ($1->data_type == dt_int) {
             temp_name = get_temp_name();
+            file << temp_name << " = " << $1->code_name << ";" <<  endl;
+            $$->code_name = temp_name;
         }
-        else {
+        else if ($1->data_type == dt_float) {
             temp_name = get_ftemp_name();
+            file << temp_name << " = " << $1->code_name << ";" <<  endl;
+            $$->code_name = temp_name;
         }
-        file << temp_name << " = " << $1->code_name << ";" <<  endl;
-        $$->code_name = temp_name;
+        
     }
     |    const 
     {
@@ -1152,7 +1299,7 @@ term:
     }
     |    ID 
     {
-        set_data_type($1); 
+        set_data_type($1,1); 
         $$ = $1;
         string temp_name;
         if ($1->data_type == dt_int) {
@@ -1166,7 +1313,7 @@ term:
     }
     |    ID PLUSPLUS
     {
-        set_data_type($1); 
+        set_data_type($1,1); 
         $$ = $1;
         string temp_name;
         if ($1->data_type == dt_int) {
@@ -1194,7 +1341,7 @@ term:
             string temp_name4 = get_ftemp_name();
             file << temp_name2 << " = " << temp_name << ";" << endl;
             file << temp_name3 << " = " << temp_name << ";" << endl;
-            file << temp_name4 << " = 1.0\n"; 
+            file << temp_name4 << " = 1.0;\n"; 
             file << temp_name3 << " = " << temp_name2 << " + " << temp_name4 << ";\n";
             file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
             release_temp_name(temp_name2);
@@ -1204,7 +1351,7 @@ term:
         
     }
     |    ID MINUSMINUS {
-        set_data_type($1); 
+        set_data_type($1,1); 
         $$ = $1;
         string temp_name;
         if ($1->data_type == dt_int) {
@@ -1232,7 +1379,7 @@ term:
             string temp_name4 = get_ftemp_name();
             file << temp_name2 << " = " << temp_name << ";" << endl;
             file << temp_name3 << " = " << temp_name << ";" << endl;
-            file << temp_name4 << " = 1.0\n"; 
+            file << temp_name4 << " = 1.0;\n"; 
             file << temp_name3 << " = " << temp_name2 << " - " << temp_name4 << ";\n";
             file << get_var_code_name($1->value)  << " = " << temp_name3 << ";" <<  endl;
             release_temp_name(temp_name2);
@@ -1241,7 +1388,7 @@ term:
         }
     }
     |    PLUSPLUS ID {
-        set_data_type($2); 
+        set_data_type($2,1); 
         $$ = $2;
         string temp_name;
         if ($2->data_type == dt_int) {
@@ -1274,7 +1421,7 @@ term:
         $$->code_name = temp_name;
     }
     |   MINUSMINUS ID {
-        set_data_type($2); 
+        set_data_type($2,1); 
         $$ = $2;
         string temp_name;
         if ($2->data_type == dt_int) {
@@ -1308,7 +1455,7 @@ term:
     }
     |    ID dims2
     {        
-        set_data_type($1);
+        set_data_type($1, 0);
         $$ = $1;
         ($$)->type = "array";
 
@@ -1329,7 +1476,7 @@ term:
     }
     |    ID dims2 PLUSPLUS
     {        
-        set_data_type($1);  
+        set_data_type($1, 0);  
         $$ = $1;
         ($$)->type = "array";
 
@@ -1370,7 +1517,7 @@ term:
     }
     |    ID dims2 MINUSMINUS
     {        
-        set_data_type($1);  
+        set_data_type($1, 0);  
         $$ = $1;
         ($$)->type = "array";
 
@@ -1410,7 +1557,7 @@ term:
     }
     |    PLUSPLUS ID dims2
     {        
-        set_data_type($2);
+        set_data_type($2, 0);
         $$ = $2;
         ($$)->type = "array";
 
@@ -1448,7 +1595,7 @@ term:
     }
     |    MINUSMINUS ID dims2
     {        
-        set_data_type($2);
+        set_data_type($2, 0);
         $$ = $2;
         ($$)->type = "array";
 
@@ -1537,7 +1684,7 @@ func_call:
             symbol_list.push_back(*variable);
             func->code_name =  variable->code_name;
         }
-        if(func->data_type == dt_float ){
+        else if(func->data_type == dt_float ){
             file << "param _fresult" << res_counter <<";\n"; 
             var *variable = new var();
             
@@ -1546,6 +1693,25 @@ func_call:
             else
                 variable->eletype = "float";
             
+            variable->name = "_fresult" + to_string(res_counter);
+            variable->code_name =  "_fresult" + to_string(res_counter++);
+            variable->level = scope;
+            variable->type = "simple";
+            variable->isParam = false;
+            variable->value = "0";
+            symbol_list.push_back(*variable);
+            func->code_name =  variable->code_name;
+        }
+        else {
+            file << "param _fresult" << res_counter <<";\n"; 
+            var *variable = new var();
+            
+            // if (func->data_type == dt_int)
+            //     variable->eletype = "int";
+            // else
+            //     variable->eletype = "float";
+            
+            variable->eletype = "void";
             variable->name = "_fresult" + to_string(res_counter);
             variable->code_name =  "_fresult" + to_string(res_counter++);
             variable->level = scope;
@@ -1575,7 +1741,7 @@ plist:
 
 int yyerror(char *s)
 {
-    flag = 0;
+    globflag = 0;
     extern char *yytext;
     printf("Line No. %d Error: %s at symbol %s\n",yylineno, s, yytext);
 }
@@ -1594,12 +1760,25 @@ int main(int argc, char* argv[])
 		yyparse();
 	} while(!feof(yyin));
 
-    if (!flag) {
+    // if (my_errors.size() > 0) {
+    //     flag = 0;
+    // }
+
+    // sort(my_errors.begin(), my_errors.end());
+    // my_errors.erase(std::unique(my_errors.begin(), my_errors.end()), my_errors.end());
+    // for (auto it: my_errors) {
+    //     cout << it;
+    // }
+
+    if (!globflag) {
         cout << "Compilation failed for " <<  argv[1]<< "\n";
+        return 1;
     }
     else {
         cout << "Compilation successful for " <<  argv[1]<< "\n";
+        return 0;
     }
+    
     // for(auto i = var_list.begin(); i!=var_list.end(); i++){
     //      cout<< *i <<endl;
     // }
@@ -1616,5 +1795,5 @@ int main(int argc, char* argv[])
     //     it.second.print();
     // }
 
-	return 0;
+	
 }

@@ -74,6 +74,7 @@ ID      ([A-Za-z_]([A-Za-z0-9_])*)
 RETURN  "return"
 SEMICOL ";"
 CONVERT "convert"
+PRINT "print"
 
 %%
 
@@ -120,6 +121,7 @@ CONVERT "convert"
 {SEMICOL}       {return SEMICOL;}
 param           {return PARAM;}
 {CONVERT}       {return CONVERT;}
+{PRINT}         {return PRINT;}
 {REG}           {(yylval.datanode) = new DataNode("REG", yytext); 
                 return REG;}
 {FREG}           {(yylval.datanode) = new DataNode("FREG", yytext); 
@@ -140,11 +142,11 @@ param           {return PARAM;}
                 return PAR_AM;}
 {RESULT}        {(yylval.datanode) = new DataNode("RESULT", yytext); 
                 return RESULT;}
-{FRESULT}        {(yylval.datanode) = new DataNode("FRESULT", yytext); 
+{FRESULT}       {(yylval.datanode) = new DataNode("FRESULT", yytext); 
                 return FRESULT;}
 {ID}			{(yylval.datanode) = new DataNode("ID", yytext); 
                 return ID;}
 {NEWLINE} 		{}
 {WHITESPACE}	{}
-.					{cerr<< "Line No. <<yylineno << Error:TOKEN CANNOT BE MATCHED "<<endl;}
+.					{cerr<< "Line No. " <<yylineno << " Error: Token cannot be matched "<<endl;}
 %%

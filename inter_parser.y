@@ -45,7 +45,7 @@
 }
 
 
-%token <datanode> CONVERT FPARAM FRESULT FVAR FREG RESULT PAR_AM PARAM LB VAR RB ADDR CALL FLOAT_VAL INT_VALUE REG AND OR ID LS RS EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP COLON NEQ COMMA IF GOTO LABEL WHITESPACE NEWLINE FUNC BEG END MAIN RETURN SEMICOL
+%token <datanode> CONVERT FPARAM FRESULT PRINT FVAR FREG RESULT PAR_AM PARAM LB VAR RB ADDR CALL FLOAT_VAL INT_VALUE REG AND OR ID LS RS EQUALS ADD SUB MUL DIV MOD GT LT GE LE COMP COLON NEQ COMMA IF GOTO LABEL WHITESPACE NEWLINE FUNC BEG END MAIN RETURN SEMICOL
 // %type<datanode> type term const func_call expr1 arith_expr expr rel_expr log_expr return_stmt op1 op2 op3 dims2 
 %type <datanode> op expr expr1 op1
 
@@ -162,6 +162,22 @@ stmt:
     | CONVERT FREG REG EQUALS FREG SEMICOL{
         file << "cvt.w.s " << $2->value << ", " << $2->value << endl;
         file << "mfc1 " << $3->value << ", " << $2->value << endl;
+    }
+    | PRINT VAR SEMICOL{
+        file << "li $v0, 1" << endl; 
+        file << "lw $a0, " << $2->value << endl;
+        file << "syscall" << endl;
+        file << "addi $a0, $0, 0xA" << endl;
+        file << "addi $v0, $0, 0xB" << endl; 
+        file << "syscall" << endl;
+    }
+    | PRINT FVAR SEMICOL{
+        file << "li $v0, 2" << endl;
+        file << "l.s $f12, " << $2->value << endl;
+        file << "syscall" << endl;
+        file << "addi $a0, $0, 0xA" << endl;
+        file << "addi $v0, $0, 0xB" << endl; 
+        file << "syscall" << endl;
     }
 ;
 
@@ -335,8 +351,8 @@ op:
     | ADD {file << "add ";$$=$1;}
     | SUB {file << "sub ";$$=$1;}
     | MUL {file << "mul ";$$=$1;}
-    | DIV {file << "div ";$$=$1;$$->type="div";}
-    | MOD {file << "div ";$$=$1;$$->type="mod";}
+    | DIV {file << "div ";$$=$1;$$->type1="div";}
+    | MOD {file << "div ";$$=$1;$$->type1="mod";}
     | AND {file << "and ";$$=$1;}
     | OR  {file << "or ";$$=$1;}
 ;

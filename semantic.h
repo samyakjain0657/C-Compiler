@@ -1,9 +1,3 @@
-// TODO
-// array float c
-// function return type
-// not op
-// negative values
-
 #include <bits/stdc++.h>
 using namespace std;
 
@@ -23,6 +17,7 @@ ofstream symfile;
 void release_temp_name(string s);
 string get_temp_name();
 string get_ftemp_name();
+bool globflag = 1;
 
 extern int yylineno;
 // Nodes of the AST
@@ -263,7 +258,7 @@ void enter_param(string name, string type, func_table_entry* &func, var* &pnptr)
 		search_func(func->name,found1,func);
 	search_param(name, func, found, new_param1);
 	if(found){
-		cout<<"Parameter "<<name<<" already declared in this function"<<endl;
+		cout << "Line No. "<< yylineno <<" Error " << " : Parameter " << name << " already declared " << endl; globflag = 0;
 		return;
 	}
 
@@ -288,7 +283,7 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 
 	search_var_level(name, func, level, found, variable1);
 	if(found){
-		cout << "Line No. "<< yylineno <<" Error " << " : Variable " << name << " already declared " << endl; 
+		cout << "Line No. "<< yylineno <<" Error " << " : Variable " << name << " already declared " << endl;  globflag = 0;
 		dimlist.clear();
 		return;
 	}
@@ -296,7 +291,7 @@ void enter_var(string name, int level, string type, vector <int> &dims, func_tab
 		var* param;
 		search_param(name, func, found, param);
 		if(found){
-			cout << "Line No. "<< yylineno <<" Error " << " : Variable " << name << " already declared as parameter" << endl; 
+			cout << "Line No. "<< yylineno <<" Error " << " : Variable " << name << " already declared as parameter" << endl;  globflag = 0;
 			dimlist.clear();
 			return;
 		}
@@ -361,14 +356,15 @@ DataNode* check_func_call(string name, vector<pair<string, DataType>> &param_lis
 			int flag=0;
 			int j=0;
 			for(auto it=func->paramlist.begin();it!=func->paramlist.end();it++,j++){
-				if(((*it).eletype=="int")&&(param_list[j].second==dt_int)){
+				if(((*it).eletype=="int")&&(param_list[j].second==dt_int) && it->type == "simple"){
 
 				}
-				else if(((*it).eletype=="float")&&(param_list[j].second== dt_float)){
+				else if(((*it).eletype=="float")&&(param_list[j].second== dt_float) && it->type == "simple"){
 
 				}
 				else{
-					cout << "Line no. " << yylineno << " Error: " << "incompatible type for argument " << j << " of function '" << name << "' " << endl;					
+					cout << "Line no. " << yylineno << " Error: " << "incompatible type for argument " << j +1<< " of function '" << name << "' " << endl;globflag = 0;
+					flag = 1;
 				}
 			}
 			if(flag==1){
@@ -387,13 +383,13 @@ DataNode* check_func_call(string name, vector<pair<string, DataType>> &param_lis
 			return res;
 		}
 		else{
-			cout << "Line no. " << yylineno << " Error: " << "no. of arguments to function '"<<func->name<<"' mismatch"<<endl;		
+			cout << "Line no. " << yylineno << " Error: " << "no. of arguments to function '"<<func->name<<"' mismatch"<<endl;		 globflag = 0;
 			res->data_type = dt_err;
 			return res;		
 		}
 	}
 	else{
-		cout << "Line no. " << yylineno << " Error: " <<"Function '"<<name<<"' is not present"<<endl;
+		cout << "Line no. " << yylineno << " Error: " <<"Function '"<<name<<"' is not present"<<endl; globflag = 0;
 		res->data_type = dt_err;
 		return res;	
 	}
@@ -427,7 +423,7 @@ DataNode* checkType(DataNode *a, DataNode* b) {
 	var* variable;
 	search_var(a->value, active_func_ptr, scope, found, variable);
 	if (!found) {
-		cout << "Line No. " << yylineno << " Error: variable '" << a->value << "' not found." << endl;
+		cout << "Line No. " << yylineno << " Error: variable '" << a->value << "' not found." << endl; globflag = 0;
 		DataNode* res = new DataNode;
 		res->data_type = dt_err;
 		return res; 
@@ -459,7 +455,7 @@ DataNode* checkType(DataNode *a, DataNode* b) {
 		return res;
 	}
 	else {
-		cout << "Line No. " << yylineno << " Error: Type of variable '"<< variable->name << "' does not match with right hand side." << endl;
+		cout << "Line No. " << yylineno << " Error: Type of variable '"<< variable->name << "' does not match with right hand side." << endl; globflag = 0;
 		DataNode* res = new DataNode;
 		res->data_type = dt_err;
 		return res;
@@ -468,7 +464,7 @@ DataNode* checkType(DataNode *a, DataNode* b) {
 
 bool check_type(DataNode*b, DataNode *a) {
 	if (active_type != a->data_type) {
-		// cout << "Line No. " << yylineno << " Error: Type of variable '" << b->value <<"' does not match with right hand side." << endl;
+		// cout << "Line No. " << yylineno << " Error: Type of variable '" << b->value <<"' does not match with right hand side." << endl; globflag = 0;
 		file << "convert " << a->code_name  << "\n";
 		string temp3;
 		if (active_type == dt_int)
@@ -489,28 +485,33 @@ DataNode* check_func_return_type(DataNode* a) {
 		return a;
 	else if (a->data_type == dt_float && active_func_ptr->result_type == "float")
 		return a;
+	else if (a->data_type == dt_none && active_func_ptr->result_type == "void")
+		return a;
 	else {
-		cout << "Line No. " << yylineno << " Error: result type of function does not match with expression." << endl;
+		cout << "Line No. " << yylineno << " Error: result type of function does not match with expression." << endl; globflag = 0;
 		DataNode* res = new DataNode;
 		res->data_type = dt_err;
 		return res;
 	}
 }
 
-void set_data_type(DataNode* &a) {
+void set_data_type(DataNode* &a, int chk) {
 	bool found = false;
 	var* variable;
 	search_var(a->value, active_func_ptr, scope, found, variable);
 	if (!found) {
-		cout << "Line No. " << yylineno << " Error: variable '" << a->value << "' not found." << endl;
+		cout << "Line No. " << yylineno << " Error: variable '" << a->value << "' not found." << endl; globflag = 0;
 		a->data_type = dt_err;
 		return;
 	}
-	if (variable->eletype == "int") {
+	if (variable->eletype == "int" && variable->type == "simple" && chk == 1 || variable->eletype == "int" && variable->type == "array" && chk == 0) {
 		a->data_type = dt_int;
 	}
-	else {
+	else if (variable->eletype == "float" && variable->type == "simple" && chk == 1 || variable->eletype == "float" && variable->type == "array" && chk == 0) {
 		a->data_type = dt_float;
+	}
+	else {
+		a->data_type = dt_err;
 	}
 }
 
@@ -519,7 +520,8 @@ string get_var_code_name(string name) {
 	var *variable;
 	search_var(name,active_func_ptr,scope,found,variable);
 	if(!found){
-		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
+		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl; globflag = 0;
+		return "";
 	}
 	else{
 		return variable->code_name;
@@ -563,7 +565,7 @@ vector <int> get_dimlist(string name){
 	var *variable;
 	search_var(name,func,scope,found,variable);
 	if(!found){
-		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl;
+		cout << "Line No. " << yylineno << " Error: variable '" << name << "' not found." << endl; globflag = 0;
 	}
 	else{
 		return variable->dims;

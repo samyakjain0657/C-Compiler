@@ -9,6 +9,8 @@ int factorial(int a, int b){
 }
 
 int main(){
-    int a = 5, b = 1, fact;
-    fact = factorial(a, b);
+    int a = 3, b = 1, fact;
+    fact = factorial(factorial(a,1), b);
+    printf("%d\n",fact);
+    return 0;
 }

@@ -2,15 +2,18 @@
 
 float z=0;
 
-int main(){
-    increaseGlobalLog(5);//final z=3
-    return 1;
-}
-
-void increaseGlobalLog(int x){// semantic error: should be before main
+void increaseGlobalLog(int x){
     if(x==0){
         return;
     }
     z++;
     increaseGlobalLog(x/2);
 }
+
+int main(){
+    int a[5];
+    increaseGlobalLog(1);
+    int x = z;
+    return 1;
+}
+

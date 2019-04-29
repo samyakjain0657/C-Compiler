@@ -114,10 +114,16 @@ LIBRARY 	 		(\#include[ \n\t]*\<.+\>)|((\#include[ \t\n]*\".+\"))
 ID					([A-Za-z_]([A-Za-z0-9_])*)
 WHITESPACE 			([ \t]+)
 NEWLINE 			([\n])
+PRINTINT            (printf\(\"\%d\\n\",[A-Za-z_]([A-Za-z0-9_])*\))
+PRINTFLOAT          (printf\(\"\%f\\n\",[A-Za-z_]([A-Za-z0-9_])*\)) 
 
 %%
 
 {SEMICOL}		{return SEMICOL;}
+{PRINTINT}      {(yylval.datanode) = initialise("INT", yytext);
+                return PRINTINT;}
+{PRINTFLOAT}    {(yylval.datanode) = initialise("FLOAT", yytext);
+                return PRINTFLOAT;}
 {EQUALS}		{return EQUALS;}
 {PLUSPLUS}      {return PLUSPLUS;}
 {MINUSMINUS}    {return MINUSMINUS;}
@@ -193,9 +199,10 @@ NEWLINE 			([\n])
                 return LIBRARY;}
 {ID}			{(yylval.datanode) = initialise("ID", yytext); 
                 return ID;}
+(\/\/.*\n|\/\*(.*(\n*))*\*\/([ \t]*\n)?) {}
 {NEWLINE} 		{}
 {WHITESPACE}	{}
 
-.					{cerr<< "Line No. <<yylineno << Error:TOKEN CANNOT BE MATCHED "<<endl;}
+.					{cerr<< "Line No. " <<yylineno << " Error: Token cannot be matched "<<endl;}
 
 %%
